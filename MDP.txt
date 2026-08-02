@@ -1,0 +1,91 @@
+xxuk qttd nfem kgbc                --------------------                 app paswrd
+
+{
+  "companyName": "Giga Tech Team",
+  "email": "Contacte@gigatechteam.com",
+  "password": "GigatechteamSecretPassword",
+  "senderId": "GTT",
+  "apiKey": "GTTeam1st",
+  "role": "admin"
+}
+
+{
+"companyName": "Clinique Santé Plus",
+  "email": "Contat@clinicsante.com",
+  "password": "@ClinicsantePassword"/"@ClinicsantePswrd",
+  "senderId": "CSP",
+  "apiKey": "ClinicSP1st",
+  "role": "user"
+}
+
+
+
+🏥 SCÉNARIO : "La Clinique Santé Plus"
+
+
+🧪 Phase 1 : L'Onboarding (Installation)
+Connexion : Déconnecte-toi. Va dans Swagger, crée un compte avec l'entreprise "Clinique Santé Plus". Connecte-toi sur React avec ce compte.
+
+Attendu : Tu arrives sur le Dashboard, le logo en bas à gauche et en haut à droite affiche "CS". Ta cloche de notification affiche "1" (car la clé API n'est pas encore configurée).
+Paramétrage API : Va dans Paramètres > Intégration API. Remplis une fausse clé et un Sender ID. Clique sur "Tester la connexion" puis "Sauvegarder".
+
+{
+
+Attendu : La cloche de notification perd son alerte rouge.
+Création de Modèles : Va dans l'onglet "Templates". Crée 2 modèles en utilisant le Glisser-Déposer :
+Modèle 1 : Rappel Standard -> "Bonjour {Prenom}, votre RDV est demain le {Date} à {Heure}."
+Modèle 2 : Suivi Patient -> "Merci {Nom} pour votre visite. Pensez à vos médicaments."
+
+
+🧪 Phase 2 : Le Carnet d'adresses (Contacts)
+Va dans Contacts.
+Crée 3 patients différents :
+Patient A : Avec un nom très très long, téléphone et Email.
+Patient B : Avec un prénom, téléphone, mais SANS Email.
+Patient C : Un patient classique.
+Modifie le Patient C pour changer son numéro, puis supprime-le.
+
+Attendu : La liste se met à jour instantanément sans recharger la page.
+
+
+🧪 Phase 3 : Le Cœur du Réacteur (Programmation RDV)
+On va tenter de faire transpirer le système.
+Le test du Passé (Blocage) : Va dans Nouveau RDV. Essaie de programmer un RDV à la date d'hier.
+
+Attendu : L'application t'insulte (gentiment) et refuse.
+Le test Multi-Clients & Email :
+Choisis le Patient A (avec email) et le Patient B (sans email).
+Coche la case "Emails ?".
+
+Attendu : Seul le Patient A doit apparaître dans la liste des emails en bas ! Le Patient B est ignoré.
+Le test du Template : Clique sur "Message Programmé", choisis ton "Modèle 1", valide.
+
+Attendu : Le texte remplace {Date} et {Heure}, mais garde {Prenom} (car il y a plusieurs clients).
+Le test de Minuit (Edge Case) : Mets l'heure de début à 23h30, avec une durée de 60 minutes. Valide et programme l'événement.
+
+
+🧪 Phase 4 : La Tour de Contrôle (Dashboard)
+Va sur le Dashboard.
+Les Statistiques : Le graphique doit afficher une barre rouge pour le jour actuel, et "Rendez-vous du jour" doit s'incrémenter.
+La Simulation de Panne (Moteur Cron) : Attends environ 30 à 40 secondes sur le Dashboard sans bouger.
+
+Attendu : Le moteur Cron backend va essayer d'envoyer les SMS fictifs. Puisqu'on a codé 30% de chance d'échec, tu as de fortes chances de voir la Cloche de Notification s'allumer pour te signaler un "Échec d'envoi".
+La Modale Historique : Clique sur "Voir Liste" en bas à droite.
+
+Attendu : Le tableau s'ouvre, bien aligné. Tu vois tes envois en "Envoyé" (Vert) ou "En Attente / FAILED". Clique sur l'icône Poubelle d'un rappel pour tester la suppression.
+Clique sur le Titre de l'événement dans le tableau.
+
+Attendu : Tu es téléporté sur NouveauRdv, et tout le formulaire se pré-remplit parfaitement.
+
+
+🧪 Phase 5 : L'Épreuve Visuelle (Agenda)
+Va dans l'Agenda.
+Regarde ton rendez-vous de 23h30.
+
+Attendu : La carte doit aller de 23h30 jusqu'en bas de la colonne (Minuit) sans s'écraser ni bugger.
+Regarde le texte à l'intérieur des événements.
+
+Attendu : Le nom des clients apparaît. Si le texte est long, place ta souris dessus : le texte doit défiler automatiquement comme un panneau d'affichage !
+
+Clique sur l'icône Liste Rouge en haut à droite.
+Attendu : La modale s'ouvre, affichant la liste propre des événements. Supprimes-en un.

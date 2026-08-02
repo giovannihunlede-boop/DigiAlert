@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "DigiAlert.Web"
+		},
+		{
+			"path": "DigiAlert.Api"
+		}
+	],
+	"settings": {}
+}

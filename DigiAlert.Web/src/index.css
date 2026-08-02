@@ -1,0 +1,66 @@
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind base;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind components;
+/* stylelint-disable-next-line at-rule-no-unknown */
+@tailwind utilities;
+/* Animation pour le texte qui défile dans l'agenda */
+/* Animation pour faire défiler le texte long dans l'agenda */
+.marquee-box {
+  overflow: hidden;
+  position: relative;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.marquee-text {
+  display: inline-block;
+  animation: scroll-left 6s linear infinite;
+  padding-right: 100%; /* Laisse de l'espace avant de recommencer la boucle */
+}
+
+.marquee-box:hover .marquee-text {
+  animation-play-state: paused; /* Met en pause quand on passe la souris */
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-100%); }
+}
+
+/* --- SÉLECTEUR DE TÉLÉPHONE INTERNATIONAL --- */
+.PhoneInput {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.PhoneInputCountry {
+  margin-right: 0.75rem;
+  padding: 0.5rem;
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+.PhoneInputInput {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px; /* rounded-full */
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: all 0.2s;
+  text-align: center;
+}
+.PhoneInputInput:focus {
+  border-color: #E11D48; /* Ton brand-red */
+  box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
+}
+/* Cache les barres de défilement mais garde la fonctionnalité */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
