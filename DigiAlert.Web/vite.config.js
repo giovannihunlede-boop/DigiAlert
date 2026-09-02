@@ -5,10 +5,10 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    host: true, // Permet l'accès depuis le téléphone
+    host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5294', // L'adresse de ton API C#
+        target: process.env.BACKEND_URL || 'http://localhost:5294',
         changeOrigin: true,
         secure: false
       }
