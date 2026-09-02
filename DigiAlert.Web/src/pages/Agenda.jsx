@@ -1,35 +1,39 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchWithAuth } from '../services/api';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, List, Trash2 } from 'lucide-react';
-
+import { ChevronLeft, Edit2, ChevronRight, Calendar as CalendarIcon, List, Trash2 } from 'lucide-react';
 
 
 const RED = '#EA1552';
 const INK = '#0B0D1F';
-// Les couleurs exactes de ta maquette !
-const EVENT_PALETTE = [
-  { bg: '#50B787', text: '#0F172A' }, // Vert
-  { bg: '#B8C556', text: '#0F172A' }, // Olive
-  { bg: '#4182A4', text: '#FFFFFF' }, // Bleu
-  { bg: '#E11D48', text: '#FFFFFF' }, // Rouge
-  { bg: '#F59E0B', text: '#0F172A' }, // Jaune
-];
 const PAGE_BG = '#F3F4F8';
 
-// Fonction pour trouver le lundi de la semaine en cours
+const EVENT_PALETTE = [
+  { bg: '#50B787', text: '#0F172A' },
+  { bg: '#B8C556', text: '#0F172A' },
+  { bg: '#4182A4', text: '#FFFFFF' },
+  { bg: '#E11D48', text: '#FFFFFF' },
+  { bg: '#F59E0B', text: '#0F172A' },
+];
+
+const STATUS_COLORS = {
+  pending: { bg: '#eab308', text: '#713f12' },
+  sent: { bg: '#4ade80', text: '#064e3b' },
+  failed: { bg: '#E11D48', text: '#ffffff' },
+  DEFAULT: { bg: '#3b82f6', text: '#eff6ff' },
+};
+
+const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+const MOIS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
+const ROW_HEIGHT = 96;
+const HOUR_COL_WIDTH = 80;
+const DAY_COL_MIN_WIDTH = 120;
+
 const formatDateInput = (date) => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-const STATUS_COLORS = {
-  'pending': { bg: '#eab308', text: '#713f12' }, // Jaune/Moutarde
-  'sent': { bg: '#4ade80', text: '#064e3b' },    // Vert
-  'failed': { bg: '#E11D48', text: '#ffffff' },  // Rouge
-  'DEFAULT': { bg: '#3b82f6', text: '#eff6ff' }  // Bleu par défaut
 };
 
 const getMondayOfWeek = (date) => {
@@ -40,121 +44,335 @@ const getMondayOfWeek = (date) => {
   return d;
 };
 
-const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-const MOIS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'];
-const ROW_HEIGHT = 96; // h-24
-const HOUR_COL_WIDTH = 80; // w-20
-const DAY_COL_MIN_WIDTH = 120;
-
 const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 
-const Agenda = ({ onCreateNew }) => {
+const formatTime = (h) => {
+  const hours = Math.floor(h);
+  const mins = Math.round((h - hours) * 60);
+  return `${String(hours).padStart(2, '0')}h${String(mins).padStart(2, '0')}`;
+};
+
+const normalizeAppointment = (event) => {
+  //CORRECTION : les vrais noms envoyés par C# 
+  const startStr = event.dateHeureDebut || event.DateHeureDebut || event.startDateTime || event.StartDateTime;
+  const endStr = event.dateHeureFin || event.DateHeureFin || event.endDateTime || event.EndDateTime;
+  const titleStr = event.titre || event.Titre || event.title || event.Title || 'Sans Titre';
+  const statusStr = event.statut || event.Statut || event.status || event.Status || 'PLANNED';
+
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+
+  let startHour = start.getHours() + start.getMinutes() / 60;
+  let endHour = end.getHours() + end.getMinutes() / 60;
+
+  if (endHour === 0 && startHour > 0) {
+    endHour = 24;
+  }
+
+  // Récupère les noms du contact associé.
+  const clientName = event.participants && event.participants.length > 0
+    ? event.participants.map((p) => {
+        const fn = p.contact?.prenom || p.contact?.firstName || p.prenom || p.firstName || '';
+        const ln = p.contact?.nom || p.contact?.lastName || p.nom || p.lastName || '';
+        return `${fn} ${ln}`.trim();
+      }).join(' & ')
+    : 'Client(s)';
+
+  // ID de l'événement
+  const evtId = event.idEvent || event.IdEvent || event.id || 0;
+  
+  // Vérifie que l'identifiant de l'événement est bien numérique avant de choisir sa couleur.
+  const colorIndex = typeof evtId === 'number' ? evtId % EVENT_PALETTE.length : 0;
+  const color = EVENT_PALETTE[colorIndex] || EVENT_PALETTE[0];
+
+  return {
+    id: evtId,
+    date: start,
+    realEnd: end,
+    start: startHour,
+    end: endHour,
+    title: titleStr,
+    status: statusStr.toUpperCase(),
+    clientName,
+    nbClients: event.participants ? event.participants.length : 0,
+    hasSentReminders: event.hasSentReminders || event.HasSentReminders || false,
+    bg: color.bg,
+    text: color.text,
+  };
+};
+
+const getDurationText = (start, end) => {
+  const durationMins = Math.round((end - start) * 60);
+  if (durationMins >= 60) {
+    return `${Math.floor(durationMins / 60)}h${(durationMins % 60).toString().padStart(2, '0')}`;
+  }
+  return `${durationMins} min`;
+};
+
+const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] animate-in zoom-in duration-200 overflow-hidden border-2 border-slate-200">
+        
+        {/* 
+          1. EN-TÊTE FIXE (HORS DU SCROLL)
+          Utilisation de Grid pour aligner les colonnes. 
+          Il est "shrink-0" donc il ne bougera jamais, et la scrollbar ne peut pas l'atteindre.
+        */}
+        <div className="hidden md:grid bg-[#DEDEDE] grid-cols-[80px_2.5fr_1.5fr_1fr_1.5fr_180px] items-center shrink-0 shadow-sm z-20 border-b border-slate-200">
+          <div className="p-5 font-extrabold text-brand-dark pl-8 rounded-tl-3xl">N°</div>
+          <div className="p-5 font-extrabold text-brand-dark">Titre</div>
+          <div className="p-5 font-extrabold text-brand-dark">Date & heure</div>
+          <div className="p-5 font-extrabold text-brand-dark">Durée</div>
+          <div className="p-5 font-extrabold text-brand-dark">Client(s)</div>
+          <div className="p-5 font-extrabold text-brand-dark text-right pr-8 rounded-tr-3xl">Actions</div>
+        </div>
+
+        {/* 
+          2. ZONE SCROLLABLE
+          La barre de défilement commence et finit exactement ici. 
+        */}
+        <div className="overflow-y-auto flex-1 bg-white">
+          <div className="flex flex-col divide-y divide-slate-100">
+            {appointments.map((evt, idx) => {
+              const durationStr = getDurationText(evt.start, evt.end);
+              const now = new Date().getTime();
+              
+              // MOTEUR D'ÉTAT TEMPOREL
+              const hasStarted = evt.date.getTime() <= now;
+              const isFinished = evt.realEnd.getTime() <= now;
+              const isCancelled = (evt.status || '').toUpperCase() === 'CANCELLED';
+
+              let statusBadge = '';
+              if (isCancelled) statusBadge = 'Annulé';
+              else if (isFinished) statusBadge = 'Terminé';
+              else if (hasStarted) statusBadge = 'En cours';
+
+              return (
+                <div 
+                  key={evt.id} 
+                  className="flex flex-col md:grid md:grid-cols-[80px_2.5fr_1.5fr_1fr_1.5fr_180px] md:items-center p-4 md:p-0 border-b border-slate-200 md:border-none gap-2 md:gap-0 hover:bg-slate-50 transition-colors"
+                >
+                  <div className="hidden md:block p-5 text-slate-800 font-bold pl-8">{idx + 1}</div>
+                  
+                  <div className="text-brand-dark font-extrabold text-lg md:text-base flex justify-between items-start md:p-5">
+                    <span className="truncate pr-2">{evt.title}</span>
+                    
+                  </div>
+                  
+                  <div className="md:p-5 text-slate-600 leading-tight font-medium text-sm md:text-base">
+                    <span className="md:hidden font-bold mr-2">Date:</span>
+                    {evt.date.toLocaleDateString('fr-FR')} à <span className="text-brand-dark">{formatTime(evt.start)}</span>
+                  </div>
+                  
+                  <div className="md:p-5 text-slate-600 font-bold text-sm md:text-base">
+                    <span className="md:hidden font-medium mr-2">Durée:</span>
+                    {durationStr}
+                  </div>
+                  
+                  <div className="md:p-5 text-slate-600 font-medium truncate pr-2 text-sm md:text-base">
+                    <span className="md:hidden font-bold mr-2">Client:</span>
+                    {evt.clientName}
+                  </div>
+                  
+                  {/* La Colonne Actions */}
+                  <div className="md:p-5 mt-3 md:mt-0 flex justify-start md:justify-end gap-3 items-center md:pr-8">
+                    
+                    {/* BOUTON BIC (Modifier) */}
+                    <button
+                      onClick={() => onEdit(evt)}
+                      className={`p-2.5 rounded-xl shadow-sm transition-all flex-shrink-0 ${evt.hasSentReminders || hasStarted || isCancelled ? 'text-slate-300 bg-slate-50 cursor-not-allowed border border-slate-100' : 'text-slate-600 hover:text-white hover:bg-brand-dark border border-slate-200'}`}
+                      title="Modifier"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+
+                    {/* BADGE OU POUBELLE */}
+                    {hasStarted || isCancelled ? (
+                      <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm uppercase tracking-wider flex-shrink-0 ${
+                        isCancelled ? 'bg-red-50 text-brand-red border border-red-200' : 
+                        isFinished ? 'bg-slate-100 text-slate-400 border border-slate-200' : 
+                        'bg-blue-50 text-blue-600 border border-blue-200 animate-pulse'
+                      }`}>
+                        {statusBadge}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => onDelete(evt.id)}
+                        className="p-2.5 text-slate-600 bg-white hover:text-white hover:bg-brand-red border border-slate-200 rounded-xl shadow-sm transition-all flex-shrink-0"
+                        title={evt.hasSentReminders ? "Annuler et prévenir le client" : "Annuler le RDV"}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+
+                  </div>
+                </div>
+              );
+            })}
+            
+            {appointments.length === 0 && (
+              <div className="p-10 text-center text-slate-500 font-medium italic bg-white">
+                Aucun événement programmé.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 3. FOOTER FIXE */}
+        <div className="bg-[#DEDEDE] p-4 md:p-5 px-4 md:px-8 flex justify-center md:justify-between items-center shrink-0 border-t border-slate-300">
+          {/* On cache le badge sur mobile pour laisser toute la place au bouton */}
+          <span className="hidden md:inline-block px-5 py-2 border-2 border-slate-400 text-slate-600 bg-white/50 rounded-xl font-bold text-sm uppercase tracking-wider">
+            Liste des Événements
+          </span>
+          <button
+            onClick={onClose}
+            className="w-full md:w-auto px-8 py-3 md:py-2.5 font-bold text-brand-dark bg-white border-b-4 border-brand-red rounded-xl hover:bg-slate-50 active:translate-y-[2px] active:border-b-2 transition-all shadow-sm"
+          >
+            Quitter
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+const Agenda = ({ onCreateNew: _onCreateNew }) => {
   const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}h00`);
   const [appointments, setAppointments] = useState([]);
-  // const [selectedDate, setSelectedDate] = useState('');
-  // const [selectedDate, setSelectedDate] = useState(formatDateInput(new Date())); 
-  const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split('T')[0] // today's date in yyyy-MM-dd
-  );
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isListModalOpen, setIsListModalOpen] = useState(false);
+
+  // Gestion de l'annulation avec message.
+  const [cancelModal, setCancelModal] = useState({ isOpen: false, eventId: null, message: '' });
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const navigate = useNavigate();
+  const containerRef = useRef(null);
+  const eightAmRef = useRef(null);
+  const dateInputRef = useRef(null);
 
-  const [isListModalOpen, setIsListModalOpen] = useState(false);
-  
-  const [weekDates, setWeekDates] = useState(() => {
-    const monday = getMondayOfWeek(new Date());
+  const weekDates = useMemo(() => {
+    const monday = getMondayOfWeek(new Date(selectedDate));
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
       d.setDate(monday.getDate() + i);
       return d;
     });
-  });
+  }, [selectedDate]);
 
+  const eventStyle = (start, end, bg, text) => {
+    const height = (end - start) * ROW_HEIGHT;
+    return {
+      top: `${start * ROW_HEIGHT}px`,
+      height: `${height < 28 ? 28 : height}px`,
+      backgroundColor: bg,
+      color: text || '#fff',
+      borderLeft: `4px solid ${RED}`,
+      zIndex: 10,
+    };
+  };
 
-  // Fonction pour supprimer un événement
+  // 1. Déclenché lors d'un clic sur le bouton de suppression.
   const handleDeleteEvent = async (idEvent) => {
-    if (!window.confirm("Voulez-vous vraiment supprimer cet événement (et tous ses rappels) ?")) return;
+    // Recherche l'événement complet pour vérifier l'état de ses rappels.
+    const evtToCancel = appointments.find(a => a.id === idEvent);
+    if (!evtToCancel) return;
+
+    if (evtToCancel.hasSentReminders) {
+      // Cas 2 : un message a déjà été envoyé; ouvre la modale d'annulation.
+      setCancelModal({ isOpen: true, eventId: idEvent, message: '' });
+      return; 
+    }
+
+    // Cas 1 : aucun message n'a été envoyé; applique l'annulation classique.
+    if (!window.confirm("Voulez-vous vraiment annuler cet événement (et tous ses rappels en attente) ?")) {
+      return;
+    }
+
     try {
       const res = await fetchWithAuth(`/api/Events/${idEvent}`, { method: 'DELETE' });
       if (res.ok) {
-        // On retire l'événement de l'affichage instantanément
-        setAppointments(prev => prev.filter(a => a.id !== idEvent));
+        const data = await res.json(); 
+        
+        setAppointments((prev) => prev.filter((a) => a.id !== idEvent));
+        alert(`${data.message || data.Message || "Événement annulé avec succès"}`);
       } else {
-        alert("Erreur lors de la suppression.");
+        const errText = await res.text();
+        try {
+          const errObj = JSON.parse(errText);
+          
+          // Si le backend indique qu'un message a déjà été envoyé, ouvre la modale.
+          if (errObj.RequiresCancellationMessage || errObj.requiresCancellationMessage) {
+            setCancelModal({ isOpen: true, eventId: idEvent, message: '' });
+            return;
+          }
+          
+          // Sinon, affiche le message explicite retourné par le backend.
+          alert(`❌ ${errObj.message || errObj.Message || "Action impossible."}`);
+        } catch (e) {
+          alert("❌ Erreur de communication avec le serveur.");
+        }
       }
     } catch (e) {
-      console.error("Erreur suppression:", e);
+      console.error('Erreur suppression:', e);
     }
   };
-  
+
+  // 2. Déclenché lors de la validation de la modale d'annulation.
+  const submitCancellation = async () => {
+    setIsCancelling(true);
+    try {
+      const res = await fetchWithAuth(`/api/Events/${cancelModal.eventId}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify({ Message: cancelModal.message }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        // Retire visuellement l'événement de l'agenda.
+        setAppointments((prev) => prev.filter((a) => a.id !== cancelModal.eventId));
+        setCancelModal({ isOpen: false, eventId: null, message: '' });
+        
+        // 🧠 Correction du undefined + message très clair !
+        const successMsg = data.message || data.Message || "Rendez-vous annulé. Les messages d'excuse vont partir.";
+        alert(`${successMsg}`);
+      } else {
+        const errText = await res.text();
+        try {
+          const errObj = JSON.parse(errText);
+          // On gère la majuscule et la minuscule
+          alert(`❌ ${errObj.message || errObj.Message || "Erreur lors de l'annulation"}`);
+        } catch (e) {
+          alert("❌ Erreur lors de l'annulation.");
+        }
+      }
+    } catch (error) {
+      console.error('Erreur annulation avec message:', error);
+      alert("Erreur réseau lors de l'annulation.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   useEffect(() => {
     const loadEvents = async () => {
       try {
         const res = await fetchWithAuth('/api/Events');
-        if (res.ok) {
-          const data = await res.json();
-          console.log("RDV reçus depuis l'API :", data); 
-          setAppointments(data.map(e => {
-          // L'astuce de pro : on check la version C# ET la version JS !
-          const startStr = e.startDateTime || e.StartDateTime;
-          const endStr = e.endDateTime || e.EndDateTime;
-          const titleStr = e.title || e.Title;
-          const statusStr = e.status || e.Status;
+        if (!res.ok) return;
 
-          const start = new Date(startStr);
-          const end = new Date(endStr);
-
-          let startHour = start.getHours() + start.getMinutes() / 60;
-          let endHour = end.getHours() + end.getMinutes() / 60;
-          
-          // 🧠 MAGIE : Si ça finit à 00h00, ça veut dire 24h00 pour notre calendrier !
-          if (endHour === 0 && startHour > 0) {
-            endHour = 24;
-          }
-
-          // On génère le nom complet de TOUS les clients du RDV
-          const clientName = e.participants && e.participants.length > 0 
-            ? e.participants.map(p => `${p.firstName || ''} ${p.lastName || ''}`.trim()).join(' & ') 
-            : 'Client(s)';
-
-          // On attribue une couleur de la palette basée sur l'ID de l'événement
-          const color = EVENT_PALETTE[(e.idEvent || e.IdEvent) % EVENT_PALETTE.length];
-          
-          return {
-            id: e.idEvent || e.IdEvent, // On stocke l'ID !
-            date: start,
-            start: startHour, 
-            end: endHour, 
-            title: titleStr,
-            
-            clientName: clientName,
-            nbClients: e.participants ? e.participants.length : 0, // 👈 NOUVEAU : On stocke le nombre de clients
-            
-            bg: color.bg,
-            text: color.text
-          };
-        }));
+        const data = await res.json();
+        setAppointments(Array.isArray(data) ? data.map(normalizeAppointment) : []);
+      } catch (error) {
+        console.error('Erreur de récupération :', error);
       }
-    } catch (error) {
-      console.error("Erreur de récupération :", error);
-    }
-  };
+    };
+
     loadEvents();
-  }, [weekDates]);
-
-  const containerRef = useRef(null);
-  const eightAmRef = useRef(null);
-  const dateInputRef = useRef(null);
-
-  useEffect(() => {
-    const monday = getMondayOfWeek(new Date(selectedDate));
-    setWeekDates(Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      return d;
-    }));
-  }, [selectedDate]);
+  }, []);
 
   useEffect(() => {
     if (containerRef.current && eightAmRef.current) {
@@ -174,335 +392,220 @@ const Agenda = ({ onCreateNew }) => {
     setSelectedDate(formatDateInput(monday));
   };
 
-// 2. Style avec hauteur minimale pour que le bloc ne soit jamais écrasé
-  const eventStyle = (start, end, bg, text) => {
-    const height = (end - start) * ROW_HEIGHT;
-    return {
-      top: `${start * ROW_HEIGHT}px`,
-      height: `${height < 28 ? 28 : height}px`, 
-      backgroundColor: bg,
-      color: text || '#fff',
-      borderLeft: `4px solid ${RED}`,
-      zIndex: 10,
-    };
+  const openEventEditor = (evtObj) => {
+    const now = new Date().getTime();
+
+    // 🔒 BARRAGE 1 : L'événement a déjà commencé ou est terminé !
+    if (evtObj.date.getTime() <= now) {
+      alert("Modification impossible : Cet événement a déjà commencé ou est terminé.");
+      return;
+    }
+
+    // 🔒 BARRAGE 2 : Un SMS est déjà parti !
+    if (evtObj.hasSentReminders) {
+      alert("Modification impossible : Un rappel (SMS ou Email) a déjà été envoyé au client. Le rendez-vous est verrouillé.");
+      return;
+    }
+    
+    setIsListModalOpen(false);
+    navigate('/nouveau-rdv', { state: { editEventId: evtObj.id } });
   };
 
-  // 1. Calcul mathématique exact des minutes
-  const formatTime = (h) => {
-    const hours = Math.floor(h);
-    const mins = Math.round((h - hours) * 60);
-    return `${String(hours).padStart(2, '0')}h${String(mins).padStart(2, '0')}`;
-  };
   const gridMinWidth = HOUR_COL_WIDTH + weekDates.length * DAY_COL_MIN_WIDTH;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden p-10" style={{ backgroundColor: PAGE_BG }}>
-      
+    <div className="h-screen flex flex-col overflow-hidden p-2 sm:p-4 md:p-10" style={{ backgroundColor: PAGE_BG }}>
       <div className="flex flex-col gap-4 justify-between items-start mb-6 shrink-0 md:flex-row">
-        <div className="flex items-center gap-4 relative w-max">
+        <div className="relative flex shrink-0">
           <button
             type="button"
-            onClick={() => dateInputRef.current?.showPicker()} // showPicker ouvre le calendrier natif
-            className="p-3 rounded-xl shadow-md bg-brand-red text-white flex items-center justify-center"
-            style={{ backgroundColor: RED }}
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="bg-brand-red text-white p-2 rounded-lg hover:bg-rose-700 transition-colors flex items-center justify-center relative z-10"
           >
-            <CalendarIcon className="w-6 h-6" />
+            <CalendarIcon className="w-5 h-5" />
           </button>
-
           <input
             ref={dateInputRef}
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            className="sr-only" // cache l’input visuellement mais garde l’accessibilité
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
           />
-
-          <div className="text-sm text-slate-600">
-            Date sélectionnée: <strong>{new Date(selectedDate).toLocaleDateString('fr-FR')}</strong>
-          </div>
         </div>
-
-        <div className="flex items-center gap-3 text-slate-600">
-          <span className="font-semibold">Semaine :</span>
-          <span>{weekDates[0] ? `${weekDates[0].getDate()} ${MOIS_FR[weekDates[0].getMonth()]} ${weekDates[0].getFullYear()}` : '-'}</span>
-        </div>
+        <h4 className="text-base sm:text-xl md:text-2xl font-extrabold truncate" style={{ color: INK }}>
+          {weekDates[0] ? `Semaine du ${weekDates[0].getDate()} ${MOIS_FR[weekDates[0].getMonth()]} ${weekDates[0].getFullYear()}` : 'Semaine'}
+        </h4>
+        
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col flex-1 min-h-0 overflow-hidden">
-
-        <div className="flex justify-between items-center p-6 border-b border-slate-100 shrink-0">
-          <h3 className="text-2xl font-extrabold" style={{ color: INK }}>
+      <div className="flex-1 flex flex-col overflow-hidden rounded-3xl shadow-lg bg-white border border-slate-200">
+        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center p-4 sm:p-6 border-b border-slate-100 shrink-0">
+          <h3 className="text-xl sm:text-2xl font-extrabold" style={{ color: INK }}>
             {weekDates[0] ? `Semaine du ${weekDates[0].getDate()} ${MOIS_FR[weekDates[0].getMonth()]} ${weekDates[0].getFullYear()}` : 'Semaine'}
           </h3>
 
-          <div className="flex items-center space-x-3">
-            {/* Le bouton Liste Rouge */}
-            <button onClick={() => setIsListModalOpen(true)} className="p-2 bg-brand-red text-white rounded-lg shadow-md hover:bg-rose-700 transition-colors" title="Vue Liste">
-              <List className="w-5 h-5" />
+          <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => setIsListModalOpen(true)}
+              className="p-2 sm:px-4 sm:py-2 bg-brand-red text-white rounded-lg shadow-md hover:bg-rose-700 transition-colors flex items-center justify-center flex-1 sm:flex-none"
+              title="Vue Liste"
+            >
+              <List className="w-5 h-5 sm:mr-2" />
+              <span className="font-bold hidden sm:inline">Liste</span>
             </button>
-            
-            <div className="flex space-x-2 border-l border-slate-200 pl-3">
-              <button onClick={prevWeek} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+
+            <div className="flex space-x-1 sm:space-x-2 border-l border-slate-200 pl-3">
+              <button onClick={prevWeek} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors bg-white">
                 <ChevronLeft className="w-5 h-5" />
               </button>
-              <button onClick={nextWeek} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors">
+              <button onClick={nextWeek} className="p-2 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 transition-colors bg-white">
                 <ChevronRight className="w-5 h-5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Un SEUL conteneur possède le scroll horizontal : l'en-tête des jours et la
-            grille des heures sont dedans ensemble, donc ils bougent toujours en phase. */}
-        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden">
+        <div className="flex-1 min-h-0 overflow-x-auto overflow-y-hidden bg-white relative no-scrollbar">
           <div className="flex flex-col h-full" style={{ minWidth: `${gridMinWidth}px` }}>
-
-            {/* En-tête des jours : suit le scroll horizontal, jamais le scroll vertical */}
-            <div className="flex border-slate-200 bg-slate-100 shrink-0 overflow-y-auto"style={{ scrollbarGutter: 'stable' }}>
+            
+            <div ref={containerRef} className="flex-1 overflow-y-auto relative bg-white" style={{ scrollbarGutter: 'stable' }}>
               
-              <div style={{ width: HOUR_COL_WIDTH }} className="shrink-0 bg-white" />
-              {weekDates.map((d, idx) => (
-                <div key={idx} className="flex-1 text-center py-4 font-bold text-slate-700 text-lg border-l border-r border-slate-200" style={{ minWidth: DAY_COL_MIN_WIDTH }}>
-                  {DAY_LABELS[idx]} {d.getDate()}
-                </div>
-              ))}
-            </div>
-
-            {/* Corps : scroll vertical uniquement ici, largeur héritée du wrapper ci-dessus */}
-            <div ref={containerRef} className="flex flex-1 min-h-0 overflow-y-auto relative bg-white" style={{ scrollbarGutter: 'stable' }}>
-
-              {/* Colonne des heures : simple empilement de div (pas de flex-col => pas de compression) */}
-              <div style={{ width: HOUR_COL_WIDTH }} className="shrink-0 border-slate-200 relative pt-2 ">
-                {hours.map((hour, idx) => (
-                  <div key={idx} ref={hour === '08h00' ? eightAmRef : null} className="h-24 relative border-r">
-                    <span className="absolute -top-3 right-3 text-sm font-medium text-slate-500">{hour}</span>
+              {/* EN-TÊTE STICKY */}
+              <div className="flex sticky top-0 z-30 bg-slate-50 border-b border-slate-200 shadow-sm">
+                <div style={{ width: HOUR_COL_WIDTH }} className="shrink-0 bg-slate-50 border-r border-slate-200" />
+                {weekDates.map((d, idx) => (
+                  <div key={idx} className="flex-1 text-center py-4 font-bold text-slate-700 text-lg border-r border-slate-200 last:border-r-0" style={{ minWidth: DAY_COL_MIN_WIDTH }}>
+                    {DAY_LABELS[idx]} {d.getDate()}
                   </div>
                 ))}
               </div>
 
-              {/* Colonnes des jours + événements, même structure que l'en-tête ci-dessus */}
-              <div className="flex flex-1 relative">
-                {weekDates.map((d, idx) => (
-                  <div key={idx} className="flex-1 border-r border-slate-200 relative h-max" style={{ minWidth: DAY_COL_MIN_WIDTH }}>
-                    {hours.map((_, hIdx) => (
-                      <div key={hIdx} className="h-24 border-b border-slate-100" />
-                    ))}
+              {/* CORPS DE L'AGENDA */}
+              <div className="flex relative">
 
-                    {appointments.filter((a) => sameDay(a.date, d)).map((a, i) => (
-              <div 
-                key={i} 
-                className="absolute left-1 right-1 rounded-md p-1.5 shadow-sm cursor-pointer hover:brightness-105 flex flex-col overflow-hidden no-scrollbar z-10 hover:z-50 hover:shadow-lg transition-all" 
-                style={eventStyle(a.start, a.end, a.bg, a.text)}
-                // ⚙️ MOTEUR AUTOSCROLL ⚙️
-                onMouseEnter={(e) => {
-                  const el = e.currentTarget;
-                  // On vérifie s'il y a vraiment besoin de scroller (si le texte dépasse)
-                  if (el.scrollHeight > el.clientHeight) {
-                    el.scrollInterval = setInterval(() => {
-                      // Si on arrive tout en bas, on remet à zéro (boucle infinie)
-                      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
-                        el.scrollTop = 0;
-                      } else {
-                        el.scrollTop += 1; // Vitesse du scroll (1px par 40ms)
-                      }
-                    }, 40);
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  const el = e.currentTarget;
-                  clearInterval(el.scrollInterval); // On arrête le moteur
-                  el.scrollTop = 0; // On remet le texte tout en haut
-                }}
-              >
-                <p className="text-[10px] font-bold shrink-0 opacity-90">{formatTime(a.start)} - {formatTime(a.end)}</p>
-                <p className="text-xs font-semibold leading-tight mt-0.5 break-words">{a.title}</p>
-                      <p className="text-[10px] font-medium opacity-90 truncate">{a.clientName}</p>
-                      <p className="text-[10px] font-medium opacity-90">Nb Clients: {a.nbClients}</p>
-                      
+                {/* COLONNE DES HEURES */}
+                <div style={{ width: HOUR_COL_WIDTH }} className="shrink-0 border-r border-slate-200 bg-white">
+                  {hours.map((hour, idx) => (
+                    <div key={idx} ref={hour === '08h00' ? eightAmRef : null} className="h-24 relative border-t border-transparent">
+                      <span className={`absolute right-2 text-xs font-bold text-slate-400 bg-white px-1 ${idx === 0 ? 'top-1.5' : '-top-2.5'}`}>
+                        {hour}
+                      </span>
+                    </div>
+                  ))}
+                </div>
 
-                      {/* Affichage du statut avec couleur */}
-                      {a.status && (
-                        <span 
-                          className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block"
-                          style={{
-                            backgroundColor: STATUS_COLORS[a.status]?.bg || STATUS_COLORS['pending']?.bg,
-                            color: STATUS_COLORS[a.status]?.text || STATUS_COLORS['pending']?.text,
+                {/* GRILLE DES JOURS */}
+                <div className="flex flex-1 relative">
+                  {weekDates.map((d, idx) => (
+                    <div key={idx} className="flex-1 border-r border-slate-200 relative" style={{ minWidth: DAY_COL_MIN_WIDTH }}>
+
+                      {/* Lignes de démarcation */}
+                      {hours.map((_, hIdx) => (
+                        <div key={hIdx} className="h-24 border-t border-slate-100" />
+                      ))}
+
+                      {appointments.filter((a) => sameDay(a.date, d)).map((a, i) => (
+                        <div
+                          key={i}
+                          className="absolute left-1 right-1 rounded-md p-1.5 shadow-sm cursor-pointer hover:brightness-105 flex flex-col overflow-hidden no-scrollbar z-10 hover:z-50 hover:shadow-lg transition-all"
+                          style={eventStyle(a.start, a.end, a.bg, a.text)}
+                          onClick={() => openEventEditor(a)}
+                          onMouseEnter={(e) => {
+                            const el = e.currentTarget;
+                            if (el.scrollHeight > el.clientHeight) {
+                              el.scrollInterval = setInterval(() => {
+                                if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1) {
+                                  el.scrollTop = 0;
+                                } else {
+                                  el.scrollTop += 1;
+                                }
+                              }, 40);
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            const el = e.currentTarget;
+                            clearInterval(el.scrollInterval);
+                            el.scrollTop = 0;
                           }}
                         >
-                          {a.status}
-                        </span>
-                      )}
+                          <p className="text-[10px] font-bold shrink-0 opacity-90">{formatTime(a.start)} - {formatTime(a.end)}</p>
+                          <p className="text-xs font-semibold leading-tight mt-0.5 break-words">{a.title}</p>
+                          <p className="text-[10px] font-medium opacity-90 truncate">{a.clientName}</p>
+                          <p className="text-[10px] font-medium opacity-90">Nb Clients: {a.nbClients}</p>
+
+                          {a.status && (
+                            <span
+                              className="text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block"
+                              style={{
+                                backgroundColor: STATUS_COLORS[a.status?.toLowerCase()]?.bg || STATUS_COLORS.pending.bg,
+                                color: STATUS_COLORS[a.status?.toLowerCase()]?.text || STATUS_COLORS.pending.text,
+                              }}
+                            >
+                              {a.status}
+                            </span>
+                          )}
+                        </div>
+                      ))}
 
                     </div>
                   ))}
-                  </div>
-                ))}
+                </div>
+
               </div>
             </div>
           </div>
         </div>
       </div>
-      {/* ================= MODALE : LISTE DES ÉVÉNEMENTS ================= */}
-      {isListModalOpen && (
-        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-4xl flex flex-col max-h-[90vh] animate-in zoom-in duration-200 overflow-hidden">
-            
-            {/* En-tête / Tableau */}
-            <div className="overflow-y-auto flex-1">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-[#DEDEDE] sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="p-4 font-bold text-brand-dark rounded-tl-3xl">N°</th>
-                    <th className="p-4 font-bold text-brand-dark">Titre</th>
-                    <th className="p-4 font-bold text-brand-dark">Date&heure</th>
-                    <th className="p-4 font-bold text-brand-dark">Duree</th>
-                    <th className="p-4 font-bold text-brand-dark text-center rounded-tr-3xl">Nb Clients</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointments.map((apt, idx) => {
-                    // Formatage de la date (ex: 12/09/2026)
-                    const dateStr = apt.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-                    // Formatage de l'heure (ex: 15H35)
-                    const timeStr = formatTime(apt.start).replace('h', 'H');
-                    
-                    // Calcul intelligent de la durée pour un affichage "5h45 min"
-                    const dHours = Math.floor(apt.end - apt.start);
-                    const dMins = Math.round(((apt.end - apt.start) % 1) * 60);
-                    let dureeStr = '';
-                    if (dHours > 0) dureeStr += `${dHours}h`;
-                    if (dMins > 0) dureeStr += `${dMins} min`;
-                    if (dureeStr === '') dureeStr = '0 min';
 
-                    return (
-                      <tr key={apt.id || idx} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 text-slate-800 font-medium">{idx + 1}</td>
-                        <td className="p-4 text-brand-dark font-bold">{apt.title}</td>
-                        <td className="p-4 text-slate-600 leading-tight">
-                          {dateStr}<br/>{timeStr}
-                        </td>
-                        <td className="p-4 text-slate-600">{dureeStr}</td>
-                        <td className="p-4 text-slate-800 font-bold text-center">{apt.nbClients}</td>
-                      </tr>
-                    );
-                  })}
-                  {appointments.length === 0 && (
-                    <tr>
-                      <td colSpan="5" className="p-8 text-center text-slate-500 font-medium">
-                        Aucun événement programmé.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+      <EventsListModal
+        appointments={appointments}
+        isOpen={isListModalOpen}
+        onClose={() => setIsListModalOpen(false)}
+        onDelete={handleDeleteEvent}
+        onEdit={openEventEditor}
+      />
+
+      {/* ================= MODALE D'ANNULATION (MESSAGE REQUIS) ================= */}
+      {cancelModal.isOpen && (
+        <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(225,29,72,0.15)] w-full max-w-lg p-5 md:p-8 mx-2 md:mx-0 animate-in zoom-in duration-200 border-2 border-rose-100 relative">
             
-            {/* Footer de la modale */}
-            <div className="bg-[#DEDEDE] p-4 px-8 flex justify-between items-center shrink-0">
-              <span className="px-5 py-2 border border-slate-400 bg-transparent rounded-xl font-bold text-brand-dark">
-                Liste des Evenement
-              </span>
-              <button 
-                onClick={() => setIsListModalOpen(false)} 
-                className="px-8 py-2 font-bold text-brand-dark border-b-4 border-brand-red rounded-xl hover:bg-gray-300 transition-colors"
+            <h3 className="text-2xl font-extrabold text-brand-dark mb-2 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-brand-red animate-pulse"></span>
+              Annulation Requise
+            </h3>
+            <p className="text-slate-600 mb-6">
+              Un ou plusieurs rappels ont <strong>déjà été envoyés</strong> pour ce rendez-vous. 
+              Vous devez rédiger un message d'excuse/annulation qui sera envoyé <strong className="text-brand-red">immédiatement</strong> aux clients concernés.
+            </p>
+
+            <textarea
+              className="w-full h-32 p-4 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red resize-none text-slate-700"
+              placeholder="Ex: Bonjour {Firstname}, le Dr Koffi a un empêchement de dernière minute. Votre RDV de demain est annulé..."
+              value={cancelModal.message}
+              onChange={(e) => setCancelModal({ ...cancelModal, message: e.target.value })}
+            ></textarea>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => setCancelModal({ isOpen: false, eventId: null, message: '' })}
+                disabled={isCancelling}
+                className="px-6 py-2 border border-slate-300 rounded-full text-slate-600 font-bold hover:bg-slate-50 transition-colors"
               >
-                Quiter
+                Retour
+              </button>
+              <button
+                onClick={submitCancellation}
+                disabled={isCancelling || cancelModal.message.trim().length < 5}
+                className={`px-6 py-2 rounded-full font-bold text-white shadow-md transition-all ${
+                  isCancelling || cancelModal.message.trim().length < 5
+                    ? 'bg-slate-400 cursor-not-allowed'
+                    : 'bg-brand-red hover:bg-rose-700 active:scale-95'
+                }`}
+              >
+                {isCancelling ? 'Annulation...' : 'Envoyer & Annuler le RDV'}
               </button>
             </div>
-
-          </div>
-        </div>
-      )}
-
-      {/* ================= MODALE : LISTE DES ÉVÉNEMENTS ================= */}
-      {isListModalOpen && (
-        <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] animate-in zoom-in duration-200 overflow-hidden">
-            
-            <div className="overflow-y-auto flex-1">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-[#DEDEDE] sticky top-0 z-10 shadow-sm">
-                  <tr>
-                    <th className="p-4 font-bold text-brand-dark rounded-tl-3xl">N°</th>
-                    <th className="p-4 font-bold text-brand-dark">Titre</th>
-                    <th className="p-4 font-bold text-brand-dark">Date & heure</th>
-                    <th className="p-4 font-bold text-brand-dark">Durée</th>
-                    <th className="p-4 font-bold text-brand-dark">Client(s)</th>
-                    <th className="p-4 font-bold text-brand-dark rounded-tr-3xl text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {appointments.map((evt, idx) => {
-                    // Calcul de la durée pour l'affichage
-                    const durationMins = Math.round((evt.end - evt.start) * 60);
-                    const durationStr = durationMins >= 60 ? `${Math.floor(durationMins/60)}h${(durationMins%60).toString().padStart(2,'0')}` : `${durationMins} min`;
-                    
-                    return (
-                      <tr key={evt.id} className="border-b border-slate-200 hover:bg-slate-50 transition-colors">
-                        <td className="p-4 text-slate-800 font-medium">{idx + 1}</td>
-                        <td className="p-4 text-brand-dark font-bold">
-                          {/* 👈 LE LIEN MAGIQUE VERS LA PAGE NOUVEAU RDV */}
-                          <span 
-                            onClick={() => {
-                              setIsListModalOpen(false);
-                              navigate('/nouveau-rdv', { state: { editEventId: evt.id } });
-                            }} 
-                            className="cursor-pointer hover:text-brand-red hover:underline transition-colors"
-                          >
-                            {evt.subtitle !== 'COMPLETED' ? (
-                              evt.title
-                            ) : (
-                              <span className="text-emerald-500">
-                                {evt.title}
-                              </span>
-                            )}
-                          </span>
-                        </td>
-                        <td className="p-4 text-slate-600 leading-tight">
-                          {evt.date.toLocaleDateString('fr-FR')}<br/>
-                          {formatTime(evt.start)}
-                        </td>
-                        <td className="p-4 text-slate-600">{durationStr}</td>
-                        <td className="p-4 text-slate-600 font-medium max-w-[200px] truncate">{evt.clientName}</td>
-                        <td className="p-4 text-right">
-                          {/* 👈 LE BOUTON POUBELLE */}
-                          {/* Si l'événement est COMPLETED, on cache la corbeille, ou on la grise */}
-                          {evt.subtitle !== 'COMPLETED' ? (
-                            <button 
-                              onClick={() => handleDeleteEvent(evt.idEvent)} // Remplace par ta vraie fonction
-                              className="p-2 text-slate-400 hover:text-brand-red transition-colors bg-slate-50 rounded-full hover:bg-red-50 shadow-sm active:scale-95"
-                              title="Supprimer cet événement"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          ) : (
-                            <span className="text-xs font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-full">
-                              Terminé
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {appointments.length === 0 && (
-                    <tr><td colSpan="6" className="p-8 text-center text-slate-500">Aucun événement programmé.</td></tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="bg-[#DEDEDE] p-4 px-8 flex justify-between items-center shrink-0">
-              <span className="px-5 py-2 border border-slate-400 bg-transparent rounded-xl font-bold text-brand-dark">
-                Liste des Événements
-              </span>
-              <button 
-                onClick={() => setIsListModalOpen(false)} 
-                className="px-8 py-2 font-bold text-brand-dark border-b-4 border-brand-red rounded-xl hover:bg-gray-300 transition-colors"
-              >
-                Quitter
-              </button>
-            </div>
-
           </div>
         </div>
       )}

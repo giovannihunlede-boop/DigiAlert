@@ -1,0 +1,92 @@
+.
+├── arborescence.txt
+├── DigiAlert.Api
+│   ├── appsettings.Development.json
+│   ├── appsettings.json
+│   ├── Controllers
+│   │   ├── AuthController.cs
+│   │   ├── ContactsController.cs
+│   │   ├── DashboardController.cs
+│   │   ├── EventsController.cs
+│   │   ├── RemindersController.cs
+│   │   ├── SmsTemplatesController.cs
+│   │   └── UsersController.cs
+│   ├── Data
+│   │   └── AppDbContext.cs
+│   ├── DigiAlert.Api.csproj
+│   ├── DigiAlert.Api.http
+│   ├── DTOs
+│   │   ├── ApiCredentialsDto.cs
+│   │   ├── ChangePasswordDto.cs
+│   │   ├── DashboardSummaryDto.cs
+│   │   ├── Eventcanceldto.cs
+│   │   ├── EventCreateDto.cs
+│   │   ├── EventResponseDto.cs
+│   │   ├── EventUpdateDto.cs
+│   │   ├── LoginDto.cs
+│   │   ├── ReminderCreateDto.cs
+│   │   ├── ReminderUpdateDto.cs
+│   │   ├── SmsTemplateCreateDto.cs
+│   │   ├── SmsTemplateUpdateDto.cs
+│   │   ├── TeamMemberDto.cs
+│   │   ├── UpdateProfileDto.cs
+│   │   └── UserRegisterDto.cs
+│   ├── Migrations
+│   │   ├── 20260804102518_FixReminderPurposeDefault.cs
+│   │   ├── 20260804102518_FixReminderPurposeDefault.Designer.cs
+│   │   ├── 20260811004150_AddEmailApiCredentials.cs
+│   │   ├── 20260811004150_AddEmailApiCredentials.Designer.cs
+│   │   ├── 20260813214022_AddTeamAndApiSettings.cs
+│   │   ├── 20260813214022_AddTeamAndApiSettings.Designer.cs
+│   │   └── AppDbContextModelSnapshot.cs
+│   ├── Models
+│   │   ├── Contact.cs
+│   │   ├── Event.cs
+│   │   ├── EventParticipant.cs
+│   │   ├── Reminder.cs
+│   │   ├── SmsTemplate.cs
+│   │   └── User.cs
+│   ├── Program.cs
+│   ├── Properties
+│   │   └── launchSettings.json
+│   └── Services
+│       └── CronEngineService.cs
+├── DigiAlertCursor.code-workspace
+├── DigiAlert.Web
+│   ├── eslint.config.js
+│   ├── index.html
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── postcss.config.js
+│   ├── public
+│   ├── README.md
+│   ├── src
+│   │   ├── App.jsx
+│   │   ├── assets
+│   │   ├── components
+│   │   ├── index.css
+│   │   ├── main.jsx
+│   │   ├── pages
+│   │   │   ├── Agenda.jsx
+│   │   │   ├── Contacts.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Login.jsx
+│   │   │   ├── NouveauRdv.jsx
+│   │   │   ├── Parametres.jsx
+│   │   │   └── Register.jsx
+│   │   └── services
+│   │       └── api.js
+│   ├── tailwind.config.js
+│   └── vite.config.js
+├── MDP.txt
+└── PDFAll-Project
+    ├── CahierDesChargeDigiAlert.pdf
+    ├── GiGaTeChTeMe2026.txt
+    ├── Guide complet pour terminer le projet.pdf
+    ├── import React useState.txt
+    ├── mon_arborescence.pdf
+    ├── mon_arborescence.txt
+    ├── PdfAll.pdf
+    └── PdfAll.txt
+
+17 directories, 73 files
