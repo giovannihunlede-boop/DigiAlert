@@ -53,7 +53,7 @@ const formatTime = (h) => {
 };
 
 const normalizeAppointment = (event) => {
-  //CORRECTION : les vrais noms envoyés par C# 
+  // Récupèreration des noms envoyés par C# 
   const startStr = event.dateHeureDebut || event.DateHeureDebut || event.startDateTime || event.StartDateTime;
   const endStr = event.dateHeureFin || event.DateHeureFin || event.endDateTime || event.EndDateTime;
   const titleStr = event.titre || event.Titre || event.title || event.Title || 'Sans Titre';
@@ -69,7 +69,7 @@ const normalizeAppointment = (event) => {
     endHour = 24;
   }
 
-  // Récupère les noms du contact associé.
+  // Récupèration des noms du contact associé.
   const clientName = event.participants && event.participants.length > 0
     ? event.participants.map((p) => {
         const fn = p.contact?.prenom || p.contact?.firstName || p.prenom || p.firstName || '';
@@ -78,10 +78,9 @@ const normalizeAppointment = (event) => {
       }).join(' & ')
     : 'Client(s)';
 
-  // ID de l'événement
   const evtId = event.idEvent || event.IdEvent || event.id || 0;
   
-  // Vérifie que l'identifiant de l'événement est bien numérique avant de choisir sa couleur.
+  // Vérification de l'id event
   const colorIndex = typeof evtId === 'number' ? evtId % EVENT_PALETTE.length : 0;
   const color = EVENT_PALETTE[colorIndex] || EVENT_PALETTE[0];
 
@@ -117,9 +116,7 @@ const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) =>
       <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-5xl flex flex-col max-h-[90vh] animate-in zoom-in duration-200 overflow-hidden border-2 border-slate-200">
         
         {/* 
-          1. EN-TÊTE FIXE (HORS DU SCROLL)
-          Utilisation de Grid pour aligner les colonnes. 
-          Il est "shrink-0" donc il ne bougera jamais, et la scrollbar ne peut pas l'atteindre.
+          1. EN-TÊTE FIXE 
         */}
         <div className="hidden md:grid bg-[#DEDEDE] grid-cols-[80px_2.5fr_1.5fr_1fr_1.5fr_180px] items-center shrink-0 shadow-sm z-20 border-b border-slate-200">
           <div className="p-5 font-extrabold text-brand-dark pl-8 rounded-tl-3xl">N°</div>
@@ -132,7 +129,6 @@ const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) =>
 
         {/* 
           2. ZONE SCROLLABLE
-          La barre de défilement commence et finit exactement ici. 
         */}
         <div className="overflow-y-auto flex-1 bg-white">
           <div className="flex flex-col divide-y divide-slate-100">
@@ -177,10 +173,10 @@ const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) =>
                     {evt.clientName}
                   </div>
                   
-                  {/* La Colonne Actions */}
+                  {/* Colonne Actions */}
                   <div className="md:p-5 mt-3 md:mt-0 flex justify-start md:justify-end gap-3 items-center md:pr-8">
                     
-                    {/* BOUTON BIC (Modifier) */}
+                    {/* BOUTON Modifier */}
                     <button
                       onClick={() => onEdit(evt)}
                       className={`p-2.5 rounded-xl shadow-sm transition-all flex-shrink-0 ${evt.hasSentReminders || hasStarted || isCancelled ? 'text-slate-300 bg-slate-50 cursor-not-allowed border border-slate-100' : 'text-slate-600 hover:text-white hover:bg-brand-dark border border-slate-200'}`}
@@ -189,7 +185,7 @@ const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) =>
                       <Edit2 className="w-4 h-4" />
                     </button>
 
-                    {/* BADGE OU POUBELLE */}
+                    {/* BADGE */}
                     {hasStarted || isCancelled ? (
                       <span className={`text-[11px] font-bold px-3 py-1.5 rounded-full flex items-center shadow-sm uppercase tracking-wider flex-shrink-0 ${
                         isCancelled ? 'bg-red-50 text-brand-red border border-red-200' : 
@@ -221,9 +217,8 @@ const EventsListModal = ({ appointments, isOpen, onClose, onDelete, onEdit }) =>
           </div>
         </div>
 
-        {/* 3. FOOTER FIXE */}
+        {/* 3. FOOTER */}
         <div className="bg-[#DEDEDE] p-4 md:p-5 px-4 md:px-8 flex justify-center md:justify-between items-center shrink-0 border-t border-slate-300">
-          {/* On cache le badge sur mobile pour laisser toute la place au bouton */}
           <span className="hidden md:inline-block px-5 py-2 border-2 border-slate-400 text-slate-600 bg-white/50 rounded-xl font-bold text-sm uppercase tracking-wider">
             Liste des Événements
           </span>
@@ -246,7 +241,6 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [isListModalOpen, setIsListModalOpen] = useState(false);
 
-  // Gestion de l'annulation avec message.
   const [cancelModal, setCancelModal] = useState({ isOpen: false, eventId: null, message: '' });
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -276,19 +270,15 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
     };
   };
 
-  // 1. Déclenché lors d'un clic sur le bouton de suppression.
   const handleDeleteEvent = async (idEvent) => {
-    // Recherche l'événement complet pour vérifier l'état de ses rappels.
     const evtToCancel = appointments.find(a => a.id === idEvent);
     if (!evtToCancel) return;
 
     if (evtToCancel.hasSentReminders) {
-      // Cas 2 : un message a déjà été envoyé; ouvre la modale d'annulation.
       setCancelModal({ isOpen: true, eventId: idEvent, message: '' });
       return; 
     }
 
-    // Cas 1 : aucun message n'a été envoyé; applique l'annulation classique.
     if (!window.confirm("Voulez-vous vraiment annuler cet événement (et tous ses rappels en attente) ?")) {
       return;
     }
@@ -305,13 +295,11 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
         try {
           const errObj = JSON.parse(errText);
           
-          // Si le backend indique qu'un message a déjà été envoyé, ouvre la modale.
           if (errObj.RequiresCancellationMessage || errObj.requiresCancellationMessage) {
             setCancelModal({ isOpen: true, eventId: idEvent, message: '' });
             return;
           }
           
-          // Sinon, affiche le message explicite retourné par le backend.
           alert(`❌ ${errObj.message || errObj.Message || "Action impossible."}`);
         } catch (e) {
           alert("❌ Erreur de communication avec le serveur.");
@@ -322,7 +310,6 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
     }
   };
 
-  // 2. Déclenché lors de la validation de la modale d'annulation.
   const submitCancellation = async () => {
     setIsCancelling(true);
     try {
@@ -333,18 +320,15 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
 
       if (res.ok) {
         const data = await res.json();
-        // Retire visuellement l'événement de l'agenda.
         setAppointments((prev) => prev.filter((a) => a.id !== cancelModal.eventId));
         setCancelModal({ isOpen: false, eventId: null, message: '' });
-        
-        // 🧠 Correction du undefined + message très clair !
+
         const successMsg = data.message || data.Message || "Rendez-vous annulé. Les messages d'excuse vont partir.";
         alert(`${successMsg}`);
       } else {
         const errText = await res.text();
         try {
           const errObj = JSON.parse(errText);
-          // On gère la majuscule et la minuscule
           alert(`❌ ${errObj.message || errObj.Message || "Erreur lors de l'annulation"}`);
         } catch (e) {
           alert("❌ Erreur lors de l'annulation.");
@@ -395,13 +379,11 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
   const openEventEditor = (evtObj) => {
     const now = new Date().getTime();
 
-    // 🔒 BARRAGE 1 : L'événement a déjà commencé ou est terminé !
     if (evtObj.date.getTime() <= now) {
       alert("Modification impossible : Cet événement a déjà commencé ou est terminé.");
       return;
     }
 
-    // 🔒 BARRAGE 2 : Un SMS est déjà parti !
     if (evtObj.hasSentReminders) {
       alert("Modification impossible : Un rappel (SMS ou Email) a déjà été envoyé au client. Le rendez-vous est verrouillé.");
       return;
@@ -470,7 +452,7 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
             
             <div ref={containerRef} className="flex-1 overflow-y-auto relative bg-white" style={{ scrollbarGutter: 'stable' }}>
               
-              {/* EN-TÊTE STICKY */}
+              {/* EN-TÊTE */}
               <div className="flex sticky top-0 z-30 bg-slate-50 border-b border-slate-200 shadow-sm">
                 <div style={{ width: HOUR_COL_WIDTH }} className="shrink-0 bg-slate-50 border-r border-slate-200" />
                 {weekDates.map((d, idx) => (
@@ -499,7 +481,6 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
                   {weekDates.map((d, idx) => (
                     <div key={idx} className="flex-1 border-r border-slate-200 relative" style={{ minWidth: DAY_COL_MIN_WIDTH }}>
 
-                      {/* Lignes de démarcation */}
                       {hours.map((_, hIdx) => (
                         <div key={hIdx} className="h-24 border-t border-slate-100" />
                       ))}
@@ -565,7 +546,7 @@ const Agenda = ({ onCreateNew: _onCreateNew }) => {
         onEdit={openEventEditor}
       />
 
-      {/* ================= MODALE D'ANNULATION (MESSAGE REQUIS) ================= */}
+      {/* ================= MODALE D'ANNULATION  ================= */}
       {cancelModal.isOpen && (
         <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-[2rem] shadow-[0_20px_60px_rgba(225,29,72,0.15)] w-full max-w-lg p-5 md:p-8 mx-2 md:mx-0 animate-in zoom-in duration-200 border-2 border-rose-100 relative">

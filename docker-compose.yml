@@ -36,8 +36,6 @@ services:
     command: dotnet watch run --urls "http://0.0.0.0:5294"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      # 🚀 MAGIE .NET : Cette variable remplace automatiquement la ConnectionString de ton appsettings.json !
-      # On utilise "Host=db" car c'est le nom du conteneur Postgres ci-dessous.
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=digialert_db;Username=postgres;Password=1324
     depends_on:
       - db
@@ -53,10 +51,8 @@ services:
       - POSTGRES_PASSWORD=1324
       - POSTGRES_DB=digialert_db
     ports:
-      # ⚠️ On l'expose sur 5434 sur ton PC pour éviter les conflits si tu as déjà un Postgres qui tourne sur ton Debian (5432).
       - "5434:5432"
     volumes:
-      # Pour ne pas perdre les données quand on éteint Docker
       - pgdata:/var/lib/postgresql/data
 
 # Déclaration du volume persistant

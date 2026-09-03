@@ -4,7 +4,7 @@ import { BarChart3, Calendar, Users, Settings, Bell, Plus, LogOut, Menu, X, Chec
 import KioskCheckin from './pages/KioskCheckin';
 import { QRCodeCanvas } from 'qrcode.react';
 
-// Import de toutes tes pages !
+// Import des pages !
 import Dashboard from './pages/Dashboard';
 import Agenda from './pages/Agenda';
 import Contacts from './pages/Contacts';
@@ -19,16 +19,14 @@ const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('jwtToken');
 
   if (!token) {
-    // Pas de token ? Direction la page de login !
     return <Navigate to="/login" replace />;
   }
 
-  // Si tout est ok, on le laisse passer vers la page demandée
   return children;
 };
 
 // ==========================================
-// LE LAYOUT (l'ossature de l'app : sidebar rétractable sur mobile + notifications)
+// LE LAYOUT PRINCIPAL DE L'APPLICATION
 // ==========================================
 const AppLayout = ({ children }) => {
   const location = useLocation(); 
@@ -39,7 +37,7 @@ const AppLayout = ({ children }) => {
   const notifsRef = useRef(null);
 
   const companyName = localStorage.getItem('companyName') || 'Mon Entreprise';
-  // On récupère les initiales pour le logo (ex: "Clinique Biova" -> "CB", "Dr. Koffi" -> "DK")
+  // On récupère les initiales de l'entreprise pour l'avatar 
   const initials = companyName
     .split(' ')
     .filter((word) => word.length > 0)
@@ -48,10 +46,8 @@ const AppLayout = ({ children }) => {
     .substring(0, 2)
     .toUpperCase();
 
-  // Fonction pour savoir si un menu est actif
   const isActive = (path) => location.pathname === path;
 
-  // On détermine le titre de la page dynamiquement
   const getPageTitle = () => {
     switch (location.pathname) {
       case '/': return 'Tableau de bord';
@@ -71,7 +67,7 @@ const AppLayout = ({ children }) => {
     window.location.href = '/login';
   };
 
-  // On charge les notifications à chaque fois qu'on change de page
+  // charge des notifications à change de page
   useEffect(() => {
     const loadNotifs = async () => {
       try {
@@ -87,8 +83,6 @@ const AppLayout = ({ children }) => {
 
   }, [location.pathname]);
 
-  // 🆕 Ferme le dropdown de notifications au clic en dehors — comportement
-  // standard attendu sur un panneau "pro", absent de la version d'origine.
   useEffect(() => {
     if (!showNotifs) return;
     const handleClickOutside = (event) => {
@@ -121,7 +115,7 @@ const AppLayout = ({ children }) => {
     }
   };
 
-  //marquer toutes les notifications comme lues
+  //marquer notifications comme lues
   const handleMarkAllAsRead = async () => {
     
     setNotifications([]);
@@ -214,12 +208,12 @@ const AppLayout = ({ children }) => {
               <Menu className="w-7 h-7" />
             </button>
 
-            {/* Titre de la page courante. */}
+            {/* Titre page courante. */}
             {location.pathname !== '/nouveau-rdv' ? (
               <h2 className="text-xl md:text-3xl font-bold text-brand-dark truncate">{getPageTitle()}</h2>
             ) : (
               <h2 className="text-xl md:text-3xl font-extrabold text-brand-dark flex items-center min-w-0 truncate">
-                {/* Lien vers l'agenda. */}
+                {/* Lien vers agenda. */}
                 <Link to="/agenda" className="hover:text-brand-red transition-colors cursor-pointer shrink-0">Agenda</Link>
                 <span className="text-slate-400 font-medium hidden sm:inline ml-2 truncate">&gt; Nouveau RDV</span>
               </h2>
@@ -229,7 +223,6 @@ const AppLayout = ({ children }) => {
           <div className="flex items-center space-x-3 md:space-x-6 shrink-0">
               {/* Zone des notifications. */}
             <div className="relative" ref={notifsRef}>
-                {/* Icône des notifications. */}
               <div
                 className="relative cursor-pointer hover:scale-105 transition-transform"
                 onClick={() => setShowNotifs((prev) => !prev)}
@@ -267,7 +260,7 @@ const AppLayout = ({ children }) => {
                             <p className="text-sm text-slate-700 leading-snug">{n.message}</p>
                           </div>
 
-                          {/* Bouton Check (visible au survol de la ligne) */}
+                          {/* Bouton Check */}
                           <button
                             onClick={handleMarkAsRead.bind(null, n.id)}
                             className="text-slate-300 hover:text-brand-red opacity-0 group-hover:opacity-100 transition-all shrink-0 mt-1"
@@ -295,9 +288,7 @@ const AppLayout = ({ children }) => {
               )}
             </div>
 
-            {/* 🆕 Bouton "Nouveau RDV" visible à TOUTES les largeurs (icône seule
-                sur mobile, "RDV" sur tablette, texte complet sur desktop) —
-                l'ancienne version le masquait complètement sous 768px (md:flex). */}
+            {/* 🆕 Bouton "Nouveau RDV" */}
             {location.pathname !== '/nouveau-rdv' && (
               <Link
                 to="/nouveau-rdv"
@@ -309,7 +300,7 @@ const AppLayout = ({ children }) => {
               </Link>
             )}
 
-            {/* Avatar en haut à droite (Cliquable vers Paramètres) */}
+            {/* Avatar en haut à droite */}
             <Link to="/parametres" className="flex items-center gap-3 border-l border-slate-200 pl-3 md:pl-6 hover:opacity-75 transition-opacity cursor-pointer">
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-brand-dark text-white flex items-center justify-center font-bold text-sm md:text-lg shrink-0 shadow-sm">
                 {initials}
@@ -318,8 +309,6 @@ const AppLayout = ({ children }) => {
             </Link>
           </div>
         </header>
-
-        {/* C'est ici que les pages s'affichent maintenant ! */}
         {children}
       </div>
     </div>
@@ -339,7 +328,7 @@ function App() {
         <Route path="/forgot-password" element={<div className="min-h-screen flex items-center justify-center text-slate-500 font-bold">Page de récupération de mot de passe (à implémenter)</div>} />
         <Route path="/reset-password" element={<div className="min-h-screen flex items-center justify-center text-slate-500 font-bold">Page de réinitialisation de mot de passe (à implémenter)</div>} />
         <Route path="/kiosk-checkin/:cabinetId" element={<KioskCheckin />} />
-        {/* Routes Privées : (ProtectedRoute) */}
+        {/* Routes Privées */}
         <Route
           path="/*"
           element={

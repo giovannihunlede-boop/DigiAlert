@@ -11,7 +11,6 @@ const KioskCheckin = () => {
     const [cabinetId, setCabinetId] = useState(null);
 
     React.useEffect(() => {
-        // Récupère l'identifiant du cabinet depuis l'URL.
         const pathParts = window.location.pathname.split('/');
         const idFromUrl = pathParts[pathParts.length - 1];
         setCabinetId(idFromUrl);
@@ -62,15 +61,13 @@ const KioskCheckin = () => {
         }
     };
 
-    // Réinitialise l'écran et revient au formulaire.
     const handleRetry = () => {
         setError(null);
         setTelephone('');
     };
 
-    // Tente de fermer l'onglet; à défaut, redirige vers une page vide.
     const handleQuit = () => {
-        window.close(); // Ferme l'onglet si le navigateur l'autorise
+        window.close(); 
         window.location.href = "about:blank"; // Fallback
     };
 
@@ -98,7 +95,7 @@ const KioskCheckin = () => {
                         </button>
                     </div>
 
-                /* Écran d'erreur lorsqu'aucun rendez-vous n'est trouvé. */
+                /* Écran d'erreur */
                 ) : error ? (
                     <div className="bg-rose-50 text-brand-red p-6 rounded-xl text-center border border-rose-200 animate-in fade-in">
                         <div className="text-4xl mb-3">⚠️</div>
@@ -122,7 +119,7 @@ const KioskCheckin = () => {
                         </div>
                     </div>
 
-                /* Écran principal avec le formulaire. */
+                /* Écran principal formulaire. */
                 ) : (
                     <form onSubmit={handleCheckin} className="space-y-6">
                         <div>

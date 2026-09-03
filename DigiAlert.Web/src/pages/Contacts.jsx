@@ -171,7 +171,7 @@ const Contacts = () => {
                 />
             </div>
 
-            {/* Liste des contacts: tableau sur ordinateur et cartes sur mobile. */}
+            {/* Liste des contacts */}
             <div className="bg-transparent sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border border-slate-100 flex-1 overflow-hidden flex flex-col">
                 
                 {filteredContacts.length === 0 ? (
@@ -181,7 +181,7 @@ const Contacts = () => {
                 ) : (
                     <div className="overflow-y-auto sm:overflow-x-auto flex-1 pb-4 sm:pb-0 h-full">
                         
-                        {/* Vue ordinateur sous forme de tableau. */}
+                        {/* Vue ordinateur */}
                         <table className="hidden sm:table w-full text-left border-collapse min-w-[600px]">
                             <thead className="sticky top-0 bg-slate-50 shadow-sm z-10">
                                 <tr className="border-b border-slate-200 text-brand-dark font-bold text-sm">
@@ -212,7 +212,7 @@ const Contacts = () => {
                             </tbody>
                         </table>
 
-                        {/* Vue mobile sous forme de cartes. */}
+                        {/* Vue mobile. */}
                         <div className="sm:hidden flex flex-col gap-3">
                             {filteredContacts.map((contact) => (
                                 <div key={contact.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3 relative">
@@ -227,7 +227,7 @@ const Contacts = () => {
                                     </div>
                                     
                                     {/* Informations du contact. */}
-                                    <div className="pr-20"> {/* Padding right pour ne pas toucher les boutons */}
+                                    <div className="pr-20"> 
                                         <h3 className="font-extrabold text-brand-dark text-lg mb-1 leading-tight">
                                             {contact.firstName} {contact.lastName}
                                         </h3>
@@ -255,7 +255,7 @@ const Contacts = () => {
                 <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
                     <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md animate-in zoom-in duration-200 overflow-hidden flex flex-col max-h-[90vh]">
                         
-                        {/* Header du Modal fixe */}
+                        {/* Header du Modale*/}
                         <div className="flex justify-between items-center p-6 bg-slate-50 border-b border-slate-100 shrink-0">
                             <h2 className="text-xl sm:text-2xl font-extrabold text-brand-dark">
                                 {editingContactId ? 'Modifier le Client' : 'Ajouter un Client'}
@@ -265,7 +265,7 @@ const Contacts = () => {
                             </button>
                         </div>
 
-                        {/* Corps du formulaire avec défilement. */}
+                        {/* Corps du formulaire */}
                         <div className="overflow-y-auto p-6 flex-1">
                             <form id="contact-form" onSubmit={handleSaveContact} className="space-y-5">
                                 
@@ -282,7 +282,7 @@ const Contacts = () => {
 
                                 <div>
                                     <label className="block text-sm font-bold text-brand-dark mb-1 pl-2">Téléphone</label>
-                                    {/* Styles Tailwind appliqués au composant PhoneInput. */}
+                                    
                                     <div className="[&>.PhoneInput]:flex [&>.PhoneInput]:items-center [&>.PhoneInput]:gap-2 [&_.PhoneInputInput]:w-full [&_.PhoneInputInput]:px-4 [&_.PhoneInputInput]:py-2.5 [&_.PhoneInputInput]:border [&_.PhoneInputInput]:border-slate-300 [&_.PhoneInputInput]:rounded-xl [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:outline-none [&_.PhoneInputInput]:focus:ring-2 [&_.PhoneInputInput]:focus:ring-brand-red/20 [&_.PhoneInputInput]:focus:border-brand-red [&_.PhoneInputInput]:shadow-sm [&_.PhoneInputCountry]:bg-slate-50 [&_.PhoneInputCountry]:border [&_.PhoneInputCountry]:border-slate-300 [&_.PhoneInputCountry]:rounded-xl [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:py-2.5">
                                         <PhoneInput
                                             international
@@ -302,7 +302,7 @@ const Contacts = () => {
                             </form>
                         </div>
 
-                        {/* Footer (Bouton d'enregistrement) */}
+                        {/* Footer */}
                         <div className="p-4 bg-slate-50 border-t border-slate-100 flex justify-center shrink-0">
                             <button type="submit" form="contact-form" className="w-full sm:w-auto px-8 py-3 bg-brand-dark hover:bg-slate-800 text-white font-bold text-base rounded-xl shadow-md transition-all active:scale-95">
                                 {editingContactId ? 'Mettre à jour' : 'Enregistrer'}
@@ -313,7 +313,7 @@ const Contacts = () => {
                 </div>
             )}
 
-            {/* Fenêtre de confirmation de suppression. */}
+            {/* Fenêtre de confirmation */}
             {confirmDeleteId && (
                 <div className="fixed inset-0 bg-brand-dark/60 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
                     <div className="bg-white rounded-3xl shadow-2xl p-6 max-w-sm w-full animate-in zoom-in duration-200 border-2 border-rose-100">

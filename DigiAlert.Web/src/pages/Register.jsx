@@ -11,7 +11,7 @@ const Register = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Appelle le backend pour créer le compte.
+      // Appelle le backend 
       const res = await fetch(`${BASE_URL}/api/Users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -32,7 +32,6 @@ const Register = () => {
   };
 
   return (
-    // overflow-y-auto permet le défilement sur les petits écrans.
     <div className="min-h-screen bg-brand-bg flex items-center justify-center p-4 font-sans overflow-y-auto">
       <div className="bg-white p-10 rounded-[2rem] shadow-2xl w-full max-w-md border border-slate-100 my-8 animate-in zoom-in duration-300">
         

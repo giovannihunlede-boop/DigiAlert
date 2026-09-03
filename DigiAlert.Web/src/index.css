@@ -1,10 +1,6 @@
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind base;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind components;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
-/* Animation du texte long affiché dans l'agenda. */
 .marquee-box {
   overflow: hidden;
   position: relative;
@@ -15,11 +11,11 @@
 .marquee-text {
   display: inline-block;
   animation: scroll-left 6s linear infinite;
-  padding-right: 100%; /* Ajoute un espace avant le redémarrage de l'animation. */
+  padding-right: 100%; 
 }
 
 .marquee-box:hover .marquee-text {
-  animation-play-state: paused; /* Suspend l'animation au survol. */
+  animation-play-state: paused; 
 }
 
 @keyframes scroll-left {
@@ -27,7 +23,7 @@
   100% { transform: translateX(-100%); }
 }
 
-/* Sélecteur de numéro de téléphone international. */
+
 .PhoneInput {
   display: flex;
   align-items: center;
@@ -44,7 +40,7 @@
   flex: 1;
   min-width: 0;
   border: 1px solid #cbd5e1;
-  border-radius: 9999px; /* Reproduit la classe rounded-full de Tailwind. */
+  border-radius: 9999px; 
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   outline: none;
@@ -52,14 +48,13 @@
   text-align: center;
 }
 .PhoneInputInput:focus {
-  border-color: #E11D48; /* Couleur principale de la marque. */
+  border-color: #E11D48; 
   box-shadow: 0 0 0 2px rgba(225, 29, 72, 0.2);
 }
-/* Masque les barres de défilement tout en conservant le défilement. */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; 
+  scrollbar-width: none;  
 }

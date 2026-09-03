@@ -33,18 +33,15 @@ const Login = () => {
       localStorage.setItem('userId', data.userId);
       localStorage.setItem('userRole', data.role);
 
-      // 2. Aller chercher le profil pour avoir le nom de l'entreprise !
+      // 2. Recherche du profil 
       const profileRes = await fetch(`${BASE_URL}/api/Users/profile`, {
       headers: { 'Authorization': `Bearer ${data.token}` }
       });
       
       if (profileRes.ok) {
       const profile = await profileRes.json();
-      // On gère la majuscule/minuscule au cas où
       localStorage.setItem('companyName', profile.companyName || profile.CompanyName || 'Mon Entreprise');
       }
-
-      // Téléportation vers le Dashboard
       navigate('/');
     } catch (err) {
       setError(err.message);

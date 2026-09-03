@@ -238,7 +238,7 @@ const Dashboard = () => {
          {/* Graphique. */}
          <div className="md:col-span-2 bg-white rounded-2xl shadow-[0_4px_12px_rgba(15,23,42,0.05)] border border-slate-100 p-4 md:p-6 flex flex-col h-[380px] md:h-[400px]">
             
-            {/* Header du graphique corrigé (flex simple, pas de positionnement absolu tordu) */}
+            {/* Header du graphique */}
             <div className="flex items-center justify-between mb-4 md:mb-6 shrink-0">
               <div className="relative">
                 <button
@@ -261,7 +261,7 @@ const Dashboard = () => {
                 {weekDates[0] ? `Semaine du ${weekDates[0].getDate()} ${MOIS_FR[weekDates[0].getMonth()]} ${weekDates[0].getFullYear()}` : 'Semaine'}
               </h4>
               
-              <div className="w-9"></div> {/* Espaceur invisible pour centrer parfaitement le titre */}
+              <div className="w-9"></div> {/* Espaceur */}
             </div>
 
             <div className="flex-1 w-full min-h-[200px]">
@@ -363,7 +363,7 @@ const Dashboard = () => {
               )}
             </div>
 
-            {/* Boutons d'action redesignés */}
+            {/* Boutons d'action */}
             <div className="pt-4 mt-2 flex flex-col gap-2 shrink-0 border-t border-slate-100">
               <button 
                 onClick={() => handleOpenModal('PENDING')} 
@@ -381,7 +381,7 @@ const Dashboard = () => {
          </div>
       </div>
 
-      {/* Fenêtres modales. */}
+      
       {/* Historique des rappels */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">

@@ -1,16 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { MessageSquare, UserIcon,Calendar as CalendarIcon, Check, X, Plus, Clock } from 'lucide-react';
 import { fetchWithAuth } from '../services/api';
 import { Trash2, Mail } from 'lucide-react';
 
-
-
-
-
-
 const NouveauRdv = () => {
-  // États qui contrôlent l'ouverture des trois fenêtres modales.
   const [showMsgModal, setShowMsgModal] = useState(false);
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
@@ -28,16 +22,11 @@ const NouveauRdv = () => {
   // Gestion de l'équipe
   const [team, setTeam] = useState([]);
   const [newStaff, setNewStaff] = useState({ firstName: '', email: '', password: '' });
-
-  // Variables utilisées pour empêcher la sélection de dates passées.
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   const currentTimeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}`;
-
-  // Vérifie qu'une date et une heure se situent dans le futur.
   const isFuture = (dateStr, timeStr) => {
     if (!dateStr || !timeStr) return false;
-    // On rajoute 1 minute de marge pour éviter que l'utilisateur soit bloqué s'il valide à la seconde près
     return new Date(`${dateStr}T${timeStr}:00`).getTime() > (new Date().getTime() - 60000); 
   };
 
@@ -98,12 +87,11 @@ const NouveauRdv = () => {
                 
                 if (smsReminders.length > 0) {
                    msgSMS = smsReminders[0].messageText || smsReminders[0].MessageText || '';
-                   // Convertit les horaires de rappel avec le décalage approprié.
+                   // Convertion horaires .
                    loadedRappels = smsReminders.map(r => {
                       const d = new Date(r.scheduledTime || r.ScheduledTime);
                       return { date: toLocalDate(d), heure: toLocalTime(d) };
                    });
-                   // On enlève les doublons si plusieurs clients
                    loadedRappels = loadedRappels.filter((v,i,a)=>a.findIndex(v2=>(v2.date===v.date && v2.heure===v.heure))===i);
                 }
 
@@ -114,14 +102,11 @@ const NouveauRdv = () => {
                        const emailReminder = emailReminders.find(r => (r.idContact || r.IdContact) === (c.idContact || c.IdContact));
                        return { 
                            ...c, 
-                           // Place le message dans tempMessage et conserve l'adresse e-mail.
                            tempMessage: emailReminder ? (emailReminder.messageText || emailReminder.MessageText || '') : '' 
                        };
                    });
                 }
               }
-
-              // On pré-remplit la machine d'état avec une précision chirurgicale !
               setFormData(prev => ({
                 ...prev,
                 titre: myEvent.title || myEvent.Title || '',
@@ -133,7 +118,6 @@ const NouveauRdv = () => {
                 messageEmail: msgEmail,
                 rappels: loadedRappels,
                 emailEnabled: isEmailActive,
-                // Si on fait un update, la récurrence est toujours désactivée (on ne modifie qu'un seul event à la fois)
                 recurrenceEnabled: false, 
                 recurrences: []
               }));
@@ -148,7 +132,7 @@ const NouveauRdv = () => {
     fetchEditData();
   }, []);
   
-  // État des données du formulaire (pour le résumé de validation)
+  // État des données du formulaire 
   const [formData, setFormData] = useState({
     titre: '',
     clients: [],
@@ -177,7 +161,6 @@ const NouveauRdv = () => {
   
   // Validation en temps réel des données saisies.
   
-  // 1. On calcule la Date Minimale pour la "Date de fin" (la date la plus éloignée parmi les récurrences)
   let minEndDateStr = todayStr;
   if (formData.recurrences && formData.recurrences.length > 0) {
     const validDates = formData.recurrences.filter(r => r.date).map(r => new Date(r.date).getTime());
@@ -189,8 +172,6 @@ const NouveauRdv = () => {
 
   const hasRepetition = formData.recurrences && formData.recurrences.length > 0 && formData.recurrences.some(r => r.repeat && r.repeat.trim().toLowerCase() !== 'non');
   const allRecurrencesValid = formData.recurrences && formData.recurrences.length > 0 && formData.recurrences.every(r => r.date !== '' && r.heure !== '');
-  
-  // 2. On vérifie que la date de fin est remplie ET qu'elle n'est pas dans le passé par rapport aux récurrences !
   const isEndDateValid = !hasRepetition || (formData.dateFinRecurrence !== '' && formData.dateFinRecurrence >= minEndDateStr);
 
   const isCol1Valid = 
@@ -198,13 +179,10 @@ const NouveauRdv = () => {
     formData.clients.length > 0 && 
     formData.duree > 0 &&
     (
-      // Soit c'est une récurrence, on a des dates VALIDES, ET la date de fin est cohérente
       (formData.recurrenceEnabled && allRecurrencesValid && isEndDateValid) 
       ||
-      // Soit c'est normal, et on a une date et une heure
       (!formData.recurrenceEnabled && formData.date !== '' && formData.heure !== '')
     );
-  // On récupère tous les clients qui ont une adresse email valide
   const validEmails = formData.clients.filter(c => {
     const mail = (c.tempEmail !== undefined ? c.tempEmail : c.email) || '';
     return mail.trim() !== '';
@@ -236,22 +214,19 @@ const NouveauRdv = () => {
       const resContacts = await fetchWithAuth('/api/Contacts');
       if (resContacts.ok) setDbContacts(await resContacts.json());
 
-      // Charger les modèles de SMS (Templates)
+      // Charger les Templates
       const resTemplates = await fetchWithAuth('/api/SmsTemplates');
       if (resTemplates.ok) setDbTemplates(await resTemplates.json());
     };
     loadData();
   }, []);
 
-  // Récurrence rows temporaires pour le modal
   const [RécurrenceRows, setRécurrenceRows] = useState([
     { id: 1, date: '', heure: '', repeat: 'Non' }
   ]);
-
-  // Message modal selections
   const [selectedMsgId, setSelectedMsgId] = useState(1);
   const [msgFields, setMsgFields] = useState({ nom: '', prenom: '', date: '' });
-  // Clients dropdown
+
   const AVAILABLE_CLIENTS = ['Dr. Koffi', 'M. Amida', 'Mme. Aminata'];
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const handleConfirm = async () => {
@@ -268,13 +243,10 @@ const NouveauRdv = () => {
 
     // 2. Génération des dates.
     let datesToProcess = [];
-
-    // 💡 CORRECTION ICI : On utilise "recurrences" en minuscules sans accent !
     if (formData.recurrenceEnabled && formData.recurrences && formData.recurrences.length > 0) {
       
       const hasRepetition = formData.recurrences.some(r => r.repeat !== 'Non');
 
-      // 🛡️ BOUCLIER : Vérifier que la date de fin existe UNIQUEMENT s'il y a une répétition !
       if (hasRepetition && !formData.dateFinRecurrence) {
         return alert("Veuillez définir une date de fin pour la récurrence dans le badge noir.");
       }
@@ -285,16 +257,13 @@ const NouveauRdv = () => {
         formData.recurrences.forEach(r => {
           if (!r.date || !r.heure) return;
           let currentDate = new Date(`${r.date}T${r.heure}:00`);
-
-          // La date de fin doit être postérieure à la date de début.
           if (hasRepetition && limitDate <= currentDate.getTime()) {
             throw new Error(`Erreur: La date de fin (${formData.dateFinRecurrence}) doit être strictement après le ${r.date}.`);
           }
 
-          // On ajoute la première occurrence
           datesToProcess.push(new Date(currentDate));
 
-          // Si répétition demandée, on calcule et on crée les dates suivantes
+          // Si répétition, on calcule et on crée les dates suivantes
           if (r.repeat !== 'Non') {
             while (true) {
               if (r.repeat === 'Jour') currentDate.setDate(currentDate.getDate() + 1);
@@ -306,26 +275,21 @@ const NouveauRdv = () => {
                 else if (r.customFreq === 'Semaine(s)') currentDate.setDate(currentDate.getDate() + (interval * 7));
                 else if (r.customFreq === 'Mois') currentDate.setMonth(currentDate.getMonth() + interval);
               }
-
-              // On arrête la boucle si on a dépassé la limite de fin
               if (currentDate.getTime() > limitDate) break;
               
-              // Sinon on ajoute la date clonée à la liste d'envoi
               datesToProcess.push(new Date(currentDate));
             }
           }
         });
       } catch (e) {
-        return alert(e.message); // Stoppe l'envoi et affiche l'erreur à l'utilisateur
+        return alert(e.message); 
       }
     } else {
-      // Cas classique : un seul événement
       if (!formData.date || !formData.heure) {
           return alert("Veuillez définir la date et l'heure de l'événement à gauche.");
       }
       const singleDate = new Date(`${formData.date}T${formData.heure}:00`);
-      
-      // On autorise le passé SEULEMENT si c'est une modification !
+
       if (singleDate.getTime() <= new Date().getTime() && !isUpdate) { 
         return alert("Erreur : La date du rendez-vous ne peut pas être dans le passé !");
       }
@@ -338,7 +302,6 @@ const NouveauRdv = () => {
     setIsSubmitting(true);
     
     try {
-      // Sécurité : on empêche de dupliquer un événement qu'on modifie !
       if (isUpdate && datesToProcess.length > 1) {
          throw new Error("Vous ne pouvez pas transformer un événement unique existant en récurrence multiple.");
       }
@@ -352,9 +315,7 @@ const NouveauRdv = () => {
       
       const firstEventTime = datesToProcess[0].getTime();
       const currentTimeMs = new Date().getTime();
-      const gracePeriodMs = currentTimeMs - (2 * 60000); // Tolérance de 2 min (identique au Backend C#)
-
-      // Préparation de la liste des rappels pour les simuler
+      const gracePeriodMs = currentTimeMs - (2 * 60000); // Tolérance de 2 min
       let fallbackDate = formData.date;
       let fallbackHeure = formData.heure;
       if (formData.recurrenceEnabled && formData.recurrences && formData.recurrences.length > 0) {
@@ -364,20 +325,16 @@ const NouveauRdv = () => {
       const finalRappels = (formData.rappels && formData.rappels.length > 0) 
          ? formData.rappels 
          : [{ date: fallbackDate, heure: fallbackHeure }];
-
-      // 🔍 SIMULATION DE TOUTE LA BOUCLE
       for (const startDate of datesToProcess) {
           const startMs = startDate.getTime();
           const endMs = startMs + (formData.duree ? parseInt(formData.duree) : 45) * 60000;
-          
-          // 1. L'Événement lui-même est-il valide ?
           if (startMs <= gracePeriodMs && !isUpdate) {
               setIsSubmitting(false);
               setShowValidationModal(false);
               return alert(`OPÉRATION ANNULÉE :\nL'événement du ${startDate.toLocaleString('fr-FR')} est dans le passé.`);
           }
 
-          // 2. Chevauchement d'agenda ?
+          // 1. Chevauchement d'agenda ?
           const hasOverlap = existingEvents.some(e => {
               if (isUpdate && (e.idEvent || e.IdEvent) === editEventId) return false;
               const st = (e.status || e.Status || '').toUpperCase();
@@ -395,7 +352,7 @@ const NouveauRdv = () => {
               return alert(`OPÉRATION ANNULÉE :\nLe créneau du ${startDate.toLocaleString('fr-FR')} chevauche un rendez-vous existant.`);
           }
 
-          // 3. Les Rappels (SMS & Email) sont-ils valides ?
+          // 2. Les Rappels (SMS & Email) sont-ils valides ?
           const hasSms = formData.messageSMS && formData.messageSMS.trim() !== '';
           const hasEmail = formData.emailEnabled;
 
@@ -406,8 +363,7 @@ const NouveauRdv = () => {
                   const originalRappelTime = new Date(`${rap.date}T${rap.heure}:00`).getTime();
                   const offset = firstEventTime - originalRappelTime;
                   const scheduledTimeMs = startMs - offset;
-                  
-                  // 🚨 LE FAMEUX VERROU : On bloque tout si UN SEUL rappel tombe dans le passé !
+
                   if (scheduledTimeMs <= gracePeriodMs) {
                       setIsSubmitting(false);
                       setShowValidationModal(false);
@@ -420,20 +376,18 @@ const NouveauRdv = () => {
       // FIN DU PRE-FLIGHT CHECK - TOUT EST VALIDE, ON PEUT ENREGISTRER EN TOUTE SÉCURITÉ !
       // =========================================================================
 
-      // 3. On boucle sur chaque date pour créer l'événement et ses rappels
+      // 3. boucle sur chaque date pour créer l'événement et ses rappels
       for (const startDate of datesToProcess) {
         
-        // Sécurité : On ignore les dates dans le passé
         if (startDate.getTime() <= new Date().getTime()) {
           console.warn(`La date ${startDate.toLocaleString()} est dans le passé, ignorée.`);
           continue; 
         }
 
         const startDateTime = startDate.toISOString();
-        const durationMins = formData.duree ? parseInt(formData.duree) : 45; // 🛡️ Sécurité sur la durée
+        const durationMins = formData.duree ? parseInt(formData.duree) : 45;
         const endDateTime = new Date(startDate.getTime() + durationMins * 60000).toISOString();
 
-        // A. Sauvegarde de l'Événement (Création POST ou Modification PUT)
         const isUpdate = editEventId !== null;
 
         
@@ -449,8 +403,7 @@ const NouveauRdv = () => {
           body: JSON.stringify({
             title: formData.titre,
             startDateTime: startDateTime,
-            endDateTime: endDateTime, // En PUT le C# attend EndDatetime, React gère ça
-            endDatetime: endDateTime, // On envoie les 2 orthographes pour être sûr à 100% avec le backend
+            endDatetime: endDateTime, 
             startDatetime: startDateTime, 
             contactIds: formData.clients.map(c => c.idContact || c.IdContact || c.id).filter(id => id),
           }),
@@ -465,16 +418,13 @@ const NouveauRdv = () => {
            } catch(e){}
            throw new Error(`L'événement a été refusé : \n${errMsg}`);
         }
-        
-        // BINGO : On récupère proprement l'ID (En gérant les majuscules/minuscules)
         const evtData = await evtRes.json();
         const finalEventId = isUpdate ? editEventId : (evtData.idEvent || evtData.IdEvent);
 
-        // 🧠 MOTEUR INTELLIGENT DE DÉCALAGE TEMPOREL (POUR LES RÉCURRENCES)
-        // 1. Quelle est la date du tout premier événement de la série ?
+        // 1. la date du tout premier événement de la série ?
         const firstEventDate = datesToProcess[0]; 
         
-        // 2. On prépare la liste des rappels (Fallback robuste si vide)
+        // 2. On prépare la liste des rappels (Fallback si vide)
         let fallbackDate = formData.date;
         let fallbackHeure = formData.heure;
         if (formData.recurrenceEnabled && formData.recurrences && formData.recurrences.length > 0) {
@@ -485,14 +435,13 @@ const NouveauRdv = () => {
             ? formData.rappels 
             : [{ date: fallbackDate, heure: fallbackHeure }];
 
-        // B. Création de la liste des rappels SMS PERSONNALISÉS
         if (formData.messageSMS && formData.messageSMS.trim() !== '') {
           for (const rap of finalRappels) {
-            // ⚙️ CALCUL DU DÉCALAGE (OFFSET)
+            // CALCUL DU DÉCALAGE 
             const originalRappelTime = new Date(`${rap.date}T${rap.heure}:00`).getTime();
             const offset = firstEventDate.getTime() - originalRappelTime;
             
-            // ⚙️ APPLICATION DU DÉCALAGE SUR L'ÉVÉNEMENT ACTUEL DE LA BOUCLE
+            // APPLICATION DU DÉCALAGE SUR L'ÉVÉNEMENT ACTUEL DE LA BOUCLE
             const scheduledTime = new Date(startDate.getTime() - offset).toISOString();
             
             for (const client of formData.clients) {
@@ -507,7 +456,7 @@ const NouveauRdv = () => {
                 body: JSON.stringify({
                   idEvent: finalEventId,
                   contactIds: [client.idContact || client.IdContact || client.id],
-                  scheduledTime: scheduledTime, // 👈 LE TEMPS PARFAITEMENT RECALCULÉ !
+                  scheduledTime: scheduledTime, 
                   messageText: finalMessageSMS,
                   channel: "SMS" 
                 }),
@@ -523,10 +472,10 @@ const NouveauRdv = () => {
           }
         }
 
-        // C. Création des rappels EMAIL (Si activé) avec MAJ automatique du contact
+        // C. Création des rappels EMAIL
         if (formData.emailEnabled) {
           for (const rap of finalRappels) {
-            // ⚙️ MÊME CALCUL DU DÉCALAGE POUR LES EMAILS
+
             const originalRappelTime = new Date(`${rap.date}T${rap.heure}:00`).getTime();
             const offset = firstEventDate.getTime() - originalRappelTime;
             const scheduledTime = new Date(startDate.getTime() - offset).toISOString();
@@ -563,7 +512,7 @@ const NouveauRdv = () => {
                 body: JSON.stringify({
                   idEvent: finalEventId,
                   contactIds: [contactId],
-                  scheduledTime: scheduledTime, // 👈 LE TEMPS PARFAITEMENT RECALCULÉ !
+                  scheduledTime: scheduledTime, 
                   messageText: finalMessageEmail,
                   channel: "EMAIL"
                 }),
@@ -580,8 +529,6 @@ const NouveauRdv = () => {
         }
 
       } 
-
-      // 4. Succès et Redirection (UNE FOIS LA BOUCLE TERMINÉE)
       setShowValidationModal(false);
       alert("RDV et Rappels enregistrés avec succès !");
       
@@ -597,22 +544,20 @@ const NouveauRdv = () => {
 
     } catch (error) {
       console.error(error);
-      // Affiche le message d'erreur retourné à l'utilisateur.
+
       alert(error.message || `Une erreur est survenue lors de l'enregistrement.\n\n${error.message}`);
     } finally {
-      setIsSubmitting(false); // 👈 On débloque le bouton
+      setIsSubmitting(false);
     }
   };
 
-// Analyse le modèle et génère les champs dynamiques correspondants.
   const handleTemplateClick = (tpl) => {
-    // 1. On extrait tout ce qui est entre accolades (ex: ["{Prenom}", "{Nom}"])
+
     const extractedTags = tpl.messageContent.match(/\{([^}]+)\}/g) || [];
     const newFields = {};
     
-    // 2. On pré-remplit intelligemment
     extractedTags.forEach(tag => {
-      const cleanTag = tag.replace(/[{}]/g, ''); // Enlève les {}
+      const cleanTag = tag.replace(/[{}]/g, '');
       
       if (cleanTag.toLowerCase() === 'nom') {
         newFields[cleanTag] = formData.clients.length > 0 ? formData.clients[0].lastName || '' : '';
@@ -623,7 +568,7 @@ const NouveauRdv = () => {
       } else if (cleanTag.toLowerCase() === 'heure') {
         newFields[cleanTag] = formData.heure || '';
       } else {
-        newFields[cleanTag] = ''; // Champ personnalisé (ex: {Motif})
+        newFields[cleanTag] = ''; 
       }
     });
     
@@ -636,13 +581,12 @@ const NouveauRdv = () => {
   return (
     <div id="page-nouveau-rdv" className="flex-1 flex flex-col overflow-y-auto p-2 sm:p-4 md:p-10 bg-brand-bg relative scroll-smooth">
 
-      {/* Conteneur Principal (Les 2 Colonnes) */}
+      {/* Conteneur Principal */}
       <div className="bg-white rounded-2xl md:rounded-[2rem] shadow-xl border border-slate-100 p-4 sm:p-6 md:p-8 flex flex-col md:flex-row gap-8 md:gap-12 max-w-6xl w-full mx-auto">
         
-        {/* ================= COLONNE GAUCHE (Infos RDV) ================= */}
+        {/* ================= COLONNE GAUCHE ================= */}
         <div className="flex-1 space-y-6">
 
-          {/* TITRE DE LA COLONNE 1 DYNAMIQUE */}
           <h2 className="text-2xl font-extrabold text-brand-dark mb-6 flex items-center border-b-2 border-slate-100 pb-4">
             <span className={`w-8 h-8 rounded-full inline-flex items-center justify-center mr-3 text-lg shadow-sm transition-colors duration-300 ${isCol1Valid ? 'bg-brand-red text-white' : 'bg-slate-200 text-slate-400'}`}>
               1
@@ -658,7 +602,6 @@ const NouveauRdv = () => {
           <div className="relative">
             <label className="block text-lg font-bold text-brand-dark mb-2">Client(s)</label>
             <div>
-              {/* 🛡️ BOUTON VERROUILLÉ EN MODE UPDATE */}
               <button 
                 type="button" 
                 onClick={() => !isUpdate && setShowClientDropdown(!showClientDropdown)}
@@ -667,7 +610,6 @@ const NouveauRdv = () => {
                 <span className="text-slate-700">
                   {formData.clients && formData.clients.length > 0 ? `${formData.clients.length} client(s) sélectionné(s)` : 'Sélectionner un client'}
                 </span>
-                {/* On cache la petite flèche si c'est verrouillé */}
                 {!isUpdate && <span className="text-slate-400">▾</span>}
               </button>
               
@@ -712,12 +654,11 @@ const NouveauRdv = () => {
             </div>
           </div>
           
-            {/* Ligne des Dates Simples */}
+            {/* Ligne des Dates */}
             <div className="mt-6">
-              {/* Ligne des Dates Simples (Style Google Calendar) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 
-                {/* 🗓️ CHAMP DATE */}
+                {/* CHAMP DATE */}
                 <div>
                   <label className={`block text-lg font-bold mb-2 ${formData.recurrenceEnabled ? 'text-slate-400' : 'text-brand-dark'}`}>Date</label>
                   <div className="relative">
@@ -728,7 +669,6 @@ const NouveauRdv = () => {
                       value={formData.date} 
                       onChange={e => setFormData({...formData, date: e.target.value})} 
                       disabled={formData.recurrenceEnabled} 
-                      /* 🚀 MAGIE UX : Ouvre le calendrier au clic sur le texte, et étire l'icône native invisible sur tout le champ */
                       onClick={(e) => e.target.showPicker && e.target.showPicker()}
                       className={`w-full pl-12 pr-4 py-3 border rounded-full outline-none transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full ${
                         formData.recurrenceEnabled 
@@ -741,7 +681,7 @@ const NouveauRdv = () => {
                   </div>
                 </div>
 
-                {/* ⏰ CHAMP HEURE */}
+                {/* CHAMP HEURE */}
                 <div>
                   <label className={`block text-lg font-bold mb-2 ${formData.recurrenceEnabled ? 'text-slate-400' : 'text-brand-dark'}`}>Heure</label>
                   <div className="relative">
@@ -750,7 +690,6 @@ const NouveauRdv = () => {
                       value={formData.heure} 
                       onChange={e => setFormData({...formData, heure: e.target.value})} 
                       disabled={formData.recurrenceEnabled} 
-                      /* 🚀 MAGIE UX : Même chose pour l'horloge */
                       onClick={(e) => e.target.showPicker && e.target.showPicker()}
                       className={`w-full pl-5 pr-12 py-3 border rounded-full outline-none transition-colors cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:w-full ${
                         formData.recurrenceEnabled 
@@ -765,8 +704,6 @@ const NouveauRdv = () => {
                 </div>
                 
               </div>
-
-              {/* Le champ Durée est maintenant LIBÉRÉ et toujours visible */}
               <div className="flex flex-col items-center mt-6 mb-4">
                 <label className={`text-sm font-bold mb-2 ${!formData.duree ? 'text-brand-red' : 'text-brand-dark'}`}>
                   Durée (minutes)
@@ -784,8 +721,6 @@ const NouveauRdv = () => {
                   }`}
                 />
               </div>
-
-              {/* Message d'erreur bien positionné (Totalement indépendant) */}
               {!formData.recurrenceEnabled && formData.date && formData.heure && !isFuture(formData.date, formData.heure) && (
                 <div className="mt-3 text-center text-sm font-bold text-brand-red animate-in fade-in flex items-center justify-center bg-red-50 py-2 rounded-lg border border-red-200">
                    La date et l'heure doivent être dans le futur !
@@ -793,7 +728,7 @@ const NouveauRdv = () => {
               )}
             </div>
 
-          {/* Nouveau BLOC RÉCURRENCE Activable */}
+          {/* BLOC RÉCURRENCE Activable */}
             <div className={`border border-slate-200 rounded-2xl p-6 relative mt-10 transition-all duration-300 ${!formData.recurrenceEnabled ? 'bg-slate-50' : 'bg-white'} ${isUpdate ? 'opacity-40 pointer-events-none grayscale' : ''}`}>
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-brand-dark text-white px-6 py-1.5 rounded-full flex items-center space-x-3 shadow-md">
                 <span className="font-bold">Récurrence ?</span>
@@ -822,13 +757,12 @@ const NouveauRdv = () => {
                           <div className="text-xs text-slate-500 font-medium mt-0.5">Répète : {r.repeat}</div>
                         </div>
                         
-                        {/* shrink-0 garantit que la poubelle garde sa taille et reste parfaitement alignée */}
                         <button 
                           type="button"
                           onClick={() => {
                             const newRecurrences = formData.recurrences.filter((_, i) => i !== idx);
                             setFormData({...formData, recurrences: newRecurrences});
-                            // 👈 SYNCHRONISATION AVEC LA MODALE D'AJOUT
+                            
                             setRécurrenceRows(newRecurrences.length > 0 ? newRecurrences : [{ id: 1, date: '', heure: '', repeat: 'Non' }]);
                           }}
                           className="p-2 text-slate-400 hover:bg-red-100 hover:text-brand-red rounded-lg opacity-0 group-hover:opacity-100 transition-all shrink-0"
@@ -845,7 +779,6 @@ const NouveauRdv = () => {
                 </div>
               )}
 
-              {/* Badge Date de fin qui n'apparaît que si on a choisi une répétition */}
               {formData.recurrenceEnabled && hasRepetition && (
                 <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-brand-dark text-white px-5 py-2 rounded-xl font-bold shadow-xl flex flex-col items-center z-30">
                   <span className="text-[10px] mb-1 text-slate-300 uppercase tracking-widest">Date de fin requise</span>
@@ -864,14 +797,11 @@ const NouveauRdv = () => {
             </div>
           </div>
         </div>
-
-        {/* Ligne Séparatrice Verticale */}
         <div className="hidden md:block w-px bg-brand-red opacity-30"></div>
 
-        {/* ================= COLONNE DROITE (Automatisations) ================= */}
+        {/* ================= COLONNE DROITE ================= */}
         <div className="flex-1 space-y-6">
 
-          {/* TITRE DE LA COLONNE 2 DYNAMIQUE */}
           <h2 className="text-2xl font-extrabold text-brand-dark mb-6 flex items-center border-b-2 border-slate-100 pb-4">
             <span className={`w-8 h-8 rounded-full inline-flex items-center justify-center mr-3 text-lg shadow-sm transition-colors duration-300 ${isCol2Valid ? 'bg-brand-red text-white' : 'bg-slate-200 text-slate-400'}`}>
               2
@@ -890,7 +820,7 @@ const NouveauRdv = () => {
               onChange={e => setFormData({...formData, messageSMS: e.target.value})}
               value={formData.messageSMS}
             ></textarea>
-            {/* 👈 LE MESSAGE INTELLIGENT POUR RASSURER L'UTILISATEUR */}
+
             {formData.clients.length > 1 && (formData.messageSMS.match(/\{Nom\}|\{Prenom\}/i)) && (
               <div className="mt-2 p-3 bg-rose-50 rounded-lg border border-red-100 flex items-start animate-in fade-in">
                  <span className="text-brand-red font-bold text-xs leading-snug">
@@ -909,7 +839,6 @@ const NouveauRdv = () => {
           {/* ================= BLOC EMAIL REPENSU ================= */}
           <div className="border border-slate-200 rounded-2xl p-4 sm:p-6 mt-8 relative bg-slate-50">
             
-            {/* En-tête avec le vrai bouton style iOS */}
             <div className="flex justify-between items-center mb-4 border-b border-slate-200 pb-4">
               <h3 className="text-base sm:text-lg font-bold text-brand-dark flex items-center">
                 <Mail className="w-5 h-5 mr-2 text-slate-500" /> 
@@ -977,7 +906,6 @@ const NouveauRdv = () => {
             )}
           </div>
 
-          {/* NOUVEAU BLOC : Envoyer le rappel (Auto / Manuel) */}
           <div className="border border-slate-300 rounded-3xl p-6 relative mt-10 flex flex-col items-center shadow-sm bg-white">
             <div className="absolute -top-4 bg-white px-4 text-brand-dark font-extrabold text-xl">
               Envoyer le rappel
@@ -1031,13 +959,13 @@ const NouveauRdv = () => {
             ) : (
               <div className="flex flex-col sm:flex-row items-center gap-4 font-medium text-slate-600 text-base sm:text-lg w-full justify-center animate-in fade-in">
               Le
-              {/* ZONE DATE : Parfaite pour le mobile */}
+              {/* ZONE DATE*/}
               <div className="relative flex items-center justify-center border-b-2 border-brand-red pb-1 min-w-[120px]">
                 <CalendarIcon className="w-5 h-5 text-brand-red mr-2" />
                 <span className="text-brand-dark font-bold text-sm">
                   {tempRappelDate ? tempRappelDate.split('-').reverse().join('/') : 'Date'}
                 </span>
-                {/* L'input natif INVISIBLE qui prend toute la place */}
+
                 <input
                   type="date"
                   min={todayStr}
@@ -1049,13 +977,13 @@ const NouveauRdv = () => {
               
               à
               
-              {/* ZONE HEURE : Parfaite pour le mobile */}
+              {/* ZONE HEURE */}
               <div className="relative flex items-center justify-center border-b-2 border-brand-red pb-1 min-w-[90px]">
                 <span className="text-brand-dark font-bold text-sm">
                   {tempRappelHeure || 'Heure'}
                 </span>
                 <Clock className="w-5 h-5 text-brand-red ml-2" />
-                {/* L'input natif INVISIBLE qui prend toute la place */}
+
                 <input
                   type="time"
                   value={tempRappelHeure}
@@ -1073,14 +1001,14 @@ const NouveauRdv = () => {
                   let tHeure = tempRappelHeure;
                   let label = null;
 
-                  // On récupère la date du premier événement pour faire nos calculs
+                  // date du premier événement
                   let baseDateStr = formData.date;
                   let baseTimeStr = formData.heure;
                   
                   if (formData.recurrenceEnabled) {
                     const validRecs = formData.recurrences ? formData.recurrences.filter(r => r.date && r.heure) : [];
                     if (validRecs.length === 0) return alert("Veuillez d'abord ajouter au moins une date dans le bloc Récurrence à gauche.");
-                    // On prend l'événement le plus tôt !
+
                     const earliestMs = Math.min(...validRecs.map(r => new Date(`${r.date}T${r.heure}:00`).getTime()));
                     const earliestDate = new Date(earliestMs);
                     const pad = n => String(n).padStart(2, '0');
@@ -1122,14 +1050,13 @@ const NouveauRdv = () => {
             </button>
           </div>
 
-          {/* Bouton Programmer Final (Géré par React !) */}
           <div className="flex justify-center pt-8">
             <button 
               type="button"
               disabled={!isCol1Valid || !isCol2Valid}
               onClick={() => {
                 setShowValidationModal(true);
-                // 🚀 L'effet magique Smooth Scroll vers le haut !
+
                 document.getElementById('page-nouveau-rdv').scrollTo({ top: 0, behavior: 'smooth' });
               }}
               className={`px-12 py-3 font-bold text-xl rounded-full shadow-xl transition-all ${isCol1Valid && isCol2Valid ? 'bg-brand-dark text-white hover:bg-slate-800 active:scale-95' : 'bg-slate-200 text-slate-400 cursor-not-allowed opacity-70'}`}
@@ -1145,19 +1072,17 @@ const NouveauRdv = () => {
         <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 w-full max-w-2xl border-t-4 border-brand-red animate-in zoom-in duration-200 flex flex-col max-h-[90vh]">
             
-            {/* En-tête propre */}
+            {/* En-tête */}
             <div className="flex justify-end shrink-0 mb-2">
               <button type="button" onClick={() => setShowMsgModal(false)} className="text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-brand-red transition-colors p-2 rounded-full">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            {/* Zone scrollable interne */}
             <div className="overflow-y-auto flex-1 pr-2">
 
-            {/* On a ajouté mt-4 ici pour espacer le contenu de la croix 👇 */}
             <div className="flex flex-col md:flex-row gap-8 mt-4">
               
-              {/* Colonne Gauche : Choix du Template */}
+              {/* Colonne Gauche */}
               <div className="flex-1 md:border-r border-slate-100 md:pr-6">
                 <h3 className="text-xl font-bold text-center mb-4 text-brand-dark">Liste Messages</h3>
                 <div className="space-y-3 max-h-[220px] md:max-h-[300px] overflow-y-auto pr-2">
@@ -1178,7 +1103,7 @@ const NouveauRdv = () => {
                 </div>
               </div>
 
-              {/* Colonne Droite : Les Champs Dynamiques */}
+              {/* Colonne Droite */}
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-center mb-4 text-brand-dark">Champs du modèle</h3>
                 <div className="grid grid-cols-1 gap-4 max-h-[220px] md:max-h-[300px] overflow-y-auto pr-2">
@@ -1213,27 +1138,22 @@ const NouveauRdv = () => {
                   
                   let baseMessage = selectedTpl.messageContent;
                   
-                  // 1. On remplace les champs personnalisés (ex: Motif)
                   Object.keys(msgFields).forEach(key => {
                     if (key.toLowerCase() !== 'nom' && key.toLowerCase() !== 'prenom' && key.toLowerCase() !== 'date' && key.toLowerCase() !== 'heure') {
                         const regex = new RegExp(`\\{${key}\\}`, 'gi');
                         baseMessage = baseMessage.replace(regex, msgFields[key]);
                     }
                   });
-
-                  // 2. On remplace Date et Heure partout (C'est commun à tout le monde !)
                   const dateVal = msgFields['Date'] || formData.date || '';
                   const heureVal = msgFields['Heure'] || formData.heure || '';
                   baseMessage = baseMessage.replace(/\{Date\}/gi, dateVal).replace(/\{Heure\}/gi, heureVal);
                   
-                  // 3. SMS : Remplacement Nom/Prenom UNIQUEMENT si 1 seul client !
                   let smsMsg = baseMessage;
                   if (formData.clients.length === 1) {
                     smsMsg = smsMsg.replace(/\{Prenom\}/gi, formData.clients[0].firstName || '')
                                    .replace(/\{Nom\}/gi, formData.clients[0].lastName || '');
                   }
 
-                  // 4. EMAILS : Remplacement individuel pour CHAQUE client dans SA propre boîte !
                   const updatedClients = formData.clients.map(c => {
                     let clientMsg = baseMessage;
                     clientMsg = clientMsg.replace(/\{Prenom\}/gi, c.firstName || '')
@@ -1262,7 +1182,7 @@ const NouveauRdv = () => {
         <div className="fixed inset-0 bg-brand-dark/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-3xl shadow-2xl p-5 sm:p-8 w-full max-w-xl border-b-4 border-brand-red animate-in zoom-in duration-200 flex flex-col max-h-[90vh]">
             
-            {/* En-tête propre et fixé */}
+            {/* En-tête */}
             <div className="flex justify-between items-center mb-6 shrink-0">
               <h3 className="text-xl sm:text-2xl font-bold text-brand-dark">Programmer une Récurrence</h3>
               <button type="button" onClick={() => setShowRecurrenceModal(false)} className="text-slate-500 bg-slate-100 hover:bg-slate-200 hover:text-brand-red transition-colors p-2 rounded-full shrink-0">
@@ -1270,13 +1190,11 @@ const NouveauRdv = () => {
               </button>
             </div>
 
-            {/* Zone scrollable */}
             <div className="space-y-6 overflow-y-auto px-2 pb-2 flex-1 min-h-[150px]">
               {RécurrenceRows.map((row, idx) => (
                 <div key={row.id} className="flex flex-col gap-3 border border-slate-200 p-4 rounded-xl shadow-sm bg-slate-50 relative mt-3">
                   <div className="absolute -top-3 left-4 bg-brand-dark text-white text-xs font-bold px-3 py-1 rounded-full">Dates N°{idx + 1}</div>
                   
-                  {/* Ligne des inputs */}
                   <div className="flex flex-col md:flex-row gap-4 items-start md:items-end w-full mt-2">
                     <div className="flex-1 w-full">
                       <label className="text-xs font-bold text-slate-500 mb-1 block">Date</label>
@@ -1298,7 +1216,7 @@ const NouveauRdv = () => {
                     </div>
                   </div>
                   
-                  {/* Bloc Personnaliser qui s'ouvre proprement */}
+                  {/* Bloc Personnaliser */}
                   {row.repeat === 'Personnaliser' && (
                     <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 mt-2 p-3 bg-white rounded-lg border border-brand-red/30 animate-in fade-in shadow-sm w-full sm:w-max">
                       <span className="text-sm font-medium text-slate-600">Répéter tous les</span>
@@ -1326,14 +1244,12 @@ const NouveauRdv = () => {
               
               <div className="mt-4 pt-4 flex justify-center shrink-0 border-t border-slate-100">
                 <button onClick={() => { 
-                  // 🛡️ BARRAGE 1 : Interdit de valider si un champ est vide !
+
                   const hasEmpty = RécurrenceRows.some(r => !r.date || !r.heure);
                   if(hasEmpty) {
                     return alert("Veuillez remplir la date et l'heure pour chaque bloc de récurrence.");
                   }
 
-                  // 🛡️ BARRAGE 2 : Interdit d'ajouter une récurrence dans le passé !
-                  // On utilise ta fonction magique 'isFuture' pour vérifier chaque ligne
                   const hasPast = RécurrenceRows.some(r => !isFuture(r.date, r.heure));
                   if(hasPast && !isUpdate) {
                     return alert("Erreur : Toutes les dates et heures de la récurrence doivent être dans le futur !");
@@ -1396,7 +1312,7 @@ const NouveauRdv = () => {
                 </div>
               )}
 
-              {/* APERÇU EMAIL CORRIGÉ */}
+              {/* APERÇU EMAIL */}
               {formData.emailEnabled && formData.messageEmail && (
                 <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 mt-2">
                   <p className="text-xs font-bold text-brand-dark mb-1">Aperçu Email :</p>

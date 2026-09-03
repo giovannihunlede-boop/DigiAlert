@@ -30,7 +30,6 @@ const Parametres = () => {
 
     const fields = ['Nom', 'Prenom', 'Date', 'Heure'];
 
-    // États utilisés lors du test de connexion.
     const [connectionStatus, setConnectionStatus] = useState('idle');
     const [connectionMessage, setConnectionMessage] = useState('Cliquez pour tester votre connexion.');
     const [loadingConnection, setLoadingConnection] = useState(false);
@@ -299,7 +298,7 @@ const Parametres = () => {
                             <div className="space-y-8 max-w-2xl mx-auto">
                                 {/* BLOC SMS */}
                                 <div className="bg-slate-50 p-4 sm:p-6 rounded-3xl border border-slate-200 shadow-sm">
-                                    {/* En-tête du bloc */}
+                                    {/* En-tête */}
                                     <h3 className="text-lg sm:text-xl font-bold text-brand-dark mb-4 sm:mb-6 flex items-center border-b border-slate-200 pb-3">
                                         <span className="bg-brand-dark text-white p-1.5 rounded-lg mr-3 shadow-sm">
                                             <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -375,7 +374,7 @@ const Parametres = () => {
                                                 <span>Tester la Connexion API</span>
                                             </button>
 
-                                            {/* Bulle d'Alerte Dynamique */}
+                                            {/* Bulle d'Alerte */}
                                             {connectionStatus !== 'idle' && (
                                                 <div
                                                     className={`flex-1 min-w-0 w-full flex items-start gap-3 p-3 rounded-xl border
@@ -474,7 +473,7 @@ const Parametres = () => {
                                 </div>
                             </form>
 
-                            {/* Liste de l'équipe : Tableau (PC) & Cartes (Mobile) */}
+                            {/* Liste de l'équipe */}
                             <div className="bg-transparent sm:bg-white sm:border border-slate-200 rounded-3xl overflow-hidden sm:shadow-sm">
                                 {/* Desktop */}
                                 <table className="hidden sm:table w-full text-left border-collapse">
