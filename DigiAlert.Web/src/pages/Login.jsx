@@ -41,6 +41,8 @@ const Login = () => {
       if (profileRes.ok) {
       const profile = await profileRes.json();
       localStorage.setItem('companyName', profile.companyName || profile.CompanyName || 'Mon Entreprise');
+
+      localStorage.setItem('kioskToken' , profile.kioskToken);
       }
       navigate('/');
     } catch (err) {
@@ -80,6 +82,7 @@ const Login = () => {
 
           <div>
             <label className="block text-sm font-bold text-brand-dark mb-2">Mot de passe</label>
+            
             <input
               type="password"
               required
@@ -88,6 +91,7 @@ const Login = () => {
               className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red transition-all"
               placeholder="••••••••"
             />
+            <Link to="/forgot-password" className="text-brand-red text-xs font-bold float-right mt-1 hover:underline">Mot de passe oublié ?</Link>
           </div>
 
           <button

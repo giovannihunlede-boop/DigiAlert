@@ -1,1 +1,10 @@
+.env
 MDP.txt
+*.key
+*.pem
+
+pgdata/
+*pgdata*
+
+.DS_Store
+Thumbs.db

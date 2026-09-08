@@ -10,6 +10,8 @@ const Contacts = () => {
     const [editingContactId, setEditingContactId] = useState(null);
     const [contacts, setContacts] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
 
     const [formData, setFormData] = useState({
         firstName: '',
@@ -19,15 +21,22 @@ const Contacts = () => {
     });
 
     useEffect(() => {
-        loadContacts();
-    }, []);
+        setPage(1);
+    }, [searchQuery]);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadContacts();
+        }, 300); 
+        return () => clearTimeout(timer);
+    }, [page, searchQuery]);
 
     const loadContacts = async () => {
         try {
-            const response = await fetchWithAuth(`/api/Contacts`);
+            const response = await fetchWithAuth(`/api/Contacts?page=${page}&pageSize=50&search=${encodeURIComponent(searchQuery)}`);
             if (response.ok) {
                 const data = await response.json();
-                const mappedContacts = data.map(c => ({
+                setTotalPages(Math.ceil(data.totalCount / 50));
+                const mappedContacts = data.contacts.map(c => ({
                     id: c.idContact,
                     firstName: c.firstName,
                     lastName: c.lastName || '',
@@ -134,11 +143,7 @@ const Contacts = () => {
         setIsModalOpen(true);
     };
 
-    const filteredContacts = contacts.filter(c =>
-        `${c.firstName} ${c.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        c.phone.includes(searchQuery) ||
-        c.email.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    
 
     return (
         <div className="p-4 md:p-6 bg-slate-50 h-screen flex flex-col overflow-hidden">
@@ -174,7 +179,7 @@ const Contacts = () => {
             {/* Liste des contacts */}
             <div className="bg-transparent sm:bg-white sm:rounded-2xl sm:shadow-sm sm:border border-slate-100 flex-1 overflow-hidden flex flex-col">
                 
-                {filteredContacts.length === 0 ? (
+                {contacts.length === 0 ? (
                     <div className="p-10 text-center text-slate-500 font-medium italic bg-white rounded-2xl">
                         Aucun contact trouvé.
                     </div>
@@ -192,7 +197,7 @@ const Contacts = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredContacts.map((contact) => (
+                                {contacts.map((contact) => (
                                     <tr key={contact.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                                         <td className="p-4 pl-6 font-bold text-slate-800">
                                             {contact.firstName} {contact.lastName}
@@ -214,7 +219,7 @@ const Contacts = () => {
 
                         {/* Vue mobile. */}
                         <div className="sm:hidden flex flex-col gap-3">
-                            {filteredContacts.map((contact) => (
+                            {contacts.map((contact) => (
                                 <div key={contact.id} className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col gap-3 relative">
                                     {/* Actions du contact. */}
                                     <div className="absolute top-4 right-4 flex gap-1">
@@ -299,6 +304,19 @@ const Contacts = () => {
                                     </label>
                                     <input type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} placeholder="ex: nom@gmail.com" className="w-full px-4 py-2.5 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-brand-red/20 focus:border-brand-red outline-none shadow-sm transition-all" />
                                 </div>
+                                {totalPages > 1 && (
+                                    <div className="flex justify-between items-center p-4 border-t border-slate-100 bg-slate-50 mt-auto">
+                                        <button disabled={page === 1} onClick={() => setPage(p => p - 1)} className="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 disabled:opacity-50 font-bold text-sm shadow-sm transition-all">
+                                            Précédent
+                                        </button>
+                                        <span className="text-sm font-bold text-slate-600">
+                                            Page {page} sur {totalPages}
+                                        </span>
+                                        <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)} className="px-4 py-2 bg-white border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-100 disabled:opacity-50 font-bold text-sm shadow-sm transition-all">
+                                            Suivant
+                                        </button>
+                                    </div>
+                                )}
                             </form>
                         </div>
 

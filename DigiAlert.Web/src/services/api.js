@@ -2,7 +2,7 @@ export const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 export const fetchWithAuth = async (endpoint, options = {}) => {
     const token = localStorage.getItem('jwtToken');
-    // 2. Prépare les en-têtes de la requête.
+    // en-têtes de la requête.
     const headers = {
         'Content-Type': 'application/json',
         ...options.headers,
@@ -19,7 +19,7 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     if (response.status === 401) {
         localStorage.removeItem('jwtToken');
         localStorage.removeItem('userId');
-        window.location.href = '/login'; // retour à la page de connexion
+        window.location.href = '/login'; 
     }
 
     return response;

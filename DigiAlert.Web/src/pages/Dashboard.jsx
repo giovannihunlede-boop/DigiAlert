@@ -150,31 +150,22 @@ const Dashboard = () => {
         setEventsList(allEvents);
       }
 
-      const remindersRes = await fetchWithAuth('/api/Reminders');
-      if (remindersRes.ok) {
-        const fetchedReminders = await remindersRes.json();
-        const today = new Date();
-
-        const newChartData = weekDates.map((d, idx) => {
-          const count = fetchedReminders.filter(r => {
-            const rDate = new Date(r.scheduledTime || r.ScheduledTime);
-            const isSameDay = rDate.getFullYear() === d.getFullYear() &&
-                              rDate.getMonth() === d.getMonth() &&
-                              rDate.getDate() === d.getDate();
-            const status = (r.status || r.Status || '').toUpperCase();
-            return isSameDay && status === 'SENT';
-          }).length;
-
-          return {
-            day: rangeLabels[idx],
-            sms: count,
-            isToday: d.getDate() === today.getDate() && 
-                     d.getMonth() === today.getMonth() && 
-                     d.getFullYear() === today.getFullYear()
-          };
-        });
-        setChartData(newChartData);
-      }
+      const mondayStr = formatDateInput(weekDates[0]);
+        const chartRes = await fetchWithAuth(`/api/Dashboard/chart?startDate=${mondayStr}`);
+        
+        if (chartRes.ok) {
+            const counts = await chartRes.json();
+            const today = new Date();
+            
+            const newChartData = weekDates.map((d, idx) => ({
+                day: rangeLabels[idx],
+                sms: counts[idx], // 👈 Le backend a déjà fait le calcul !
+                isToday: d.getDate() === today.getDate() && 
+                          d.getMonth() === today.getMonth() && 
+                          d.getFullYear() === today.getFullYear()
+            }));
+            setChartData(newChartData);
+        }
     } catch (error) {
       console.error("Erreur Dashboard :", error);
     }
@@ -487,9 +478,9 @@ const Dashboard = () => {
             <h3 className="text-2xl font-extrabold text-brand-dark mb-2">Kiosque d'Accueil</h3>
             <p className="text-center text-slate-500 text-sm mb-6">Scannez le QR Code pour accéder au kiosque.</p>
             <div className="p-4 border-2 border-slate-100 rounded-2xl shadow-sm mb-6 bg-white">
-              <QRCode value={`${window.location.origin}/kiosk-checkin/${localStorage.getItem('userId')}`} size={200} fgColor="#0F172A" />
+              <QRCode value={`${window.location.origin}/kiosk-checkin/${localStorage.getItem('kioskToken')}`} size={200} fgColor="#0F172A" />
             </div>
-            <a href={`/kiosk-checkin/${localStorage.getItem('userId')}`} target="_blank" rel="noopener noreferrer" className="text-brand-red font-bold hover:underline">
+            <a href={`/kiosk-checkin/${localStorage.getItem('kioskToken')}`} target="_blank" rel="noopener noreferrer" className="text-brand-red font-bold hover:underline">
               Ouvrir le Kiosque dans un nouvel onglet
             </a>
           </div>

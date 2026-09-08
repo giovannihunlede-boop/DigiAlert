@@ -41,7 +41,7 @@ const KioskCheckin = () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
             telephone: telephone, 
-            userId: cabinetId 
+            kioskToken: cabinetId 
             })
         });
 

@@ -12,6 +12,8 @@ import Parametres from './pages/Parametres';
 import NouveauRdv from './pages/NouveauRdv';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 
 import { fetchWithAuth } from './services/api';
 
@@ -325,6 +327,9 @@ function App() {
         {/* Route Publique */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/kiosk-checkin/:cabinetId" element={<KioskCheckin />} />
         <Route path="/forgot-password" element={<div className="min-h-screen flex items-center justify-center text-slate-500 font-bold">Page de récupération de mot de passe (à implémenter)</div>} />
         <Route path="/reset-password" element={<div className="min-h-screen flex items-center justify-center text-slate-500 font-bold">Page de réinitialisation de mot de passe (à implémenter)</div>} />
         <Route path="/kiosk-checkin/:cabinetId" element={<KioskCheckin />} />
