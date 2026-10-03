@@ -1,0 +1,846 @@
+"use client";
+
+import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+
+// @ts-expect-error CSS imports are handled by Next.js but have no package declaration.
+import 'react-phone-number-input/style.css';
+
+/* =========================================================
+    COMPOSANT : COMPTEUR ANIMÉ POUR LES STATISTIQUES
+========================================================= */
+const AnimatedCounter = ({ end, suffix = "" }: { end: number, suffix?: string }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const duration = 2000; // 2 secondes d'animation
+    const increment = end / (duration / 16);
+    
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        setCount(end);
+        clearInterval(timer);
+      } else {
+        setCount(Math.ceil(start));
+      }
+    }, 16);
+
+    return () => clearInterval(timer);
+  }, [end]);
+
+  return <span>{count}{suffix}</span>;
+};
+
+/* =========================================================
+    1. SECTION : SERVICES INTERACTIVE
+========================================================= */
+export const ServicesSection: React.FC = () => {
+  const [activeModal, setActiveModal] = useState<number | null>(null);
+  const [showTooltip, setShowTooltip] = useState(false);
+
+  const servicesData = [
+    {
+      id: 1,
+      title: "Développement\n& Programation",
+      packs: [
+        { name: "PACK STARTUP 360", image: "/pack-startup.jpg", features: ["Application Mobile (Client).", "Site Web (Présentation / Vitrine).", "Application Web Admin (Pour gérer vos clients et vos ventes)."] },
+        { name: "HÉBERGEMENT PRO", image: "/pack-hebergement.jpg", features: ["Serveurs VPS ultra-performants.", "Certificat de sécurité SSL gratuit (HTTPS).", "Déploiement professionnel (Docker, SAP Cloud)."] },
+        { name: "MAINTENANCE DEV", image: "/pack-maintenance.jpg", features: ["Mise à jour des technologies.", "Correction de bugs 24/7.", "Optimisation des performances."] }
+      ]
+    },
+    {
+      id: 2,
+      title: "Cybersécurité\n& Reseaux",
+      packs: [
+        { name: "AUDIT COMPLET", image: "/pack-audit.jpg", features: ["Test d'intrusion (Pen-test).", "Analyse des vulnérabilités.", "Rapport de conformité détaillé."] },
+        { name: "ARCHITECTURE SECURE", image: "/pack-archi.jpg", features: ["Configuration Pare-feu (Firewall).", "Mise en place de VPN.", "Segmentation réseau VLAN."] }
+      ]
+    },
+    {
+      id: 3,
+      title: "Infographie\n& Design",
+      packs: [
+        { name: "BRANDING COMPLET", image: "/pack-branding.jpg", features: ["Création de Logo sur mesure.", "Charte graphique complète.", "Cartes de visite & Signatures."] },
+        { name: "UI/UX DESIGN", image: "/pack-uiux.jpg", features: ["Maquettes Web & Mobile (Figma).", "Prototypage interactif.", "Audit d'expérience utilisateur."] }
+      ]
+    },
+    {
+      id: 4,
+      title: "Support Informatique\n& Assistance",
+      packs: [
+        { name: "INTERVENTION RAPIDE", image: "/pack-intervention.jpg", features: ["Dépannage à distance.", "Restauration de données.", "Nettoyage virus/malwares."] },
+        { name: "PARC INFORMATIQUE", image: "/pack-parc.jpg", features: ["Installation de postes.", "Configuration des imprimantes.", "Gestion des accès employés."] }
+      ]
+    }
+  ];
+
+  const whatsappNumber = "22871650631";
+
+  return (
+    <section id="services" className="bg-gtt-bg py-24 px-6 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto relative">
+        
+        <div className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-montserrat font-bold text-white mb-2">
+            Nos <span className="text-gtt-primary">Services</span>
+          </h2>
+          <p className="text-gtt-muted font-roboto text-sm md:text-base">
+            Nous combinons technologie, sécurité et créativité pour donner vie à vos projets.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+          {servicesData.map((service, index) => (
+            <div key={service.id} className="bg-[#1a1b26]/80 backdrop-blur-sm border border-gtt-primary/20 rounded-2xl p-10 flex flex-col items-center justify-center text-center relative group hover:border-gtt-primary transition-all duration-300 shadow-[0_0_15px_rgba(0,0,0,0.5)]">
+              <div className="absolute top-4 left-4 w-2 h-2 rounded-full bg-gtt-primary shadow-[0_0_8px_#0302ff]"></div>
+              <div className="absolute top-4 right-4 w-2 h-2 rounded-full bg-gtt-primary shadow-[0_0_8px_#0302ff]"></div>
+              
+              <h3 className="text-2xl md:text-3xl font-montserrat font-bold text-white mb-8 whitespace-pre-line leading-tight">
+                {service.title}
+              </h3>
+              
+              <button onClick={() => setActiveModal(index)} className="bg-gtt-primary hover:bg-gtt-primary/80 text-white font-roboto font-bold py-2.5 px-8 rounded-lg transition-all shadow-[0_0_15px_rgba(3,2,255,0.4)]">
+                Decouvrire
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col items-center justify-center mt-12 relative z-30 w-full">
+          {showTooltip && (
+            <div className="absolute bottom-full mb-4 left-1/2 transform -translate-x-1/2 w-[90vw] sm:w-[80vw] max-w-2xl z-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="bg-[#0b0c2a]/95 backdrop-blur-xl border border-gtt-primary/40 text-center p-6 md:p-10 shadow-[0_0_50px_rgba(3,2,255,0.3)] rounded-[30px] md:rounded-[50px]">
+                <p className="text-white font-roboto text-[clamp(0.75rem,2vw,0.95rem)] leading-relaxed mx-auto">
+                  <strong className="text-white">Besoin d'un projet complet ?</strong> Nous pouvons combiner plusieurs de nos pôles d'expertise pour concevoir une solution sur mesure. Pas besoin d'avoir choisi un pack figé au préalable : présentez-nous votre idée, et nous structurons et développons votre projet de bout en bout.
+                </p>
+              </div>
+              <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 text-gtt-primary">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor"><path d="M12 21l-9-9h18l-9 9z"/></svg>
+              </div>
+            </div>
+          )}
+
+          <button 
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            onClick={() => setShowTooltip(!showTooltip)}
+            className="w-14 h-14 bg-gtt-primary rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(3,2,255,0.6)] hover:scale-110 transition-transform cursor-pointer relative z-30"
+          >
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      {activeModal !== null && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-[#000000]/90 backdrop-blur-sm animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-[#050614] border border-gtt-primary/30 w-full max-w-6xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="flex justify-between items-center p-6 border-b border-white/10 relative shrink-0">
+              <h2 className="text-xl md:text-3xl font-montserrat font-bold text-white text-center w-full whitespace-pre-line">
+                {servicesData[activeModal].title.replace('\n', ' ')}
+              </h2>
+              <button onClick={() => setActiveModal(null)} className="absolute right-6 text-gtt-secondary hover:text-white transition-colors">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+
+            <div className="p-6 md:p-8 overflow-y-hidden overflow-x-auto pb-8 custom-scrollbar">
+              <div className="flex gap-6 snap-x w-max mx-auto h-full items-stretch">
+                {servicesData[activeModal].packs.map((pack, idx) => {
+                  const poleName = servicesData[activeModal].title.replace('\n', ' ');
+                  const messageText = `Bonjour l'équipe Giga-Tech Team \n\nJe suis intéressé(e) par le pack *« ${pack.name} »* proposé par le pôle *${poleName}*. Vous m'en dites plus ?\n\nPour mon projet ou demande, voilà une petite description :\n...`;
+                  const whatsappLink = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(messageText)}`;
+
+                  return (
+                    <div key={idx} className="w-[300px] md:w-[320px] bg-[#0b0c1e] border border-white/10 rounded-xl overflow-hidden flex flex-col shrink-0 snap-center">
+                      <div className="h-40 w-full bg-[#1c1c24] relative flex items-center justify-center overflow-hidden">
+                        <img src={pack.image} alt={pack.name} className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                        <h4 className="relative z-10 font-montserrat font-black text-xl text-white tracking-widest uppercase drop-shadow-md text-center p-4">
+                          {pack.name}
+                        </h4>
+                      </div>
+
+                      <div className="p-6 flex flex-col grow">
+                        <p className="text-sm font-roboto font-bold text-white mb-4 text-center underline underline-offset-4 decoration-gtt-secondary">
+                          Inclus dans ce pack complet
+                        </p>
+                        <ul className="space-y-3 mb-8 grow">
+                          {pack.features.map((feat, fIdx) => (
+                            <li key={fIdx} className="flex items-start gap-2 text-[13px] md:text-sm text-white/80 font-roboto leading-snug">
+                              <span className="text-gtt-primary mt-0.5">•</span>
+                              <span>{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <a href={whatsappLink} target="_blank" rel="noopener noreferrer" className="w-full bg-gtt-primary hover:bg-gtt-primary/90 text-white font-bold py-3 rounded-lg transition-all shadow-[0_0_15px_rgba(3,2,255,0.4)] mt-auto text-center flex items-center justify-center gap-2">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.388 0 12.035c0 2.122.553 4.195 1.604 6.01L.062 24l6.113-1.603a12.052 12.052 0 005.856 1.523h.005c6.645 0 12.031-5.388 12.031-12.035C24 5.4 18.675 0 12.031 0zm0 21.94c-1.796 0-3.555-.483-5.093-1.396l-.365-.216-3.784.992 1.008-3.69-.237-.377A9.97 9.97 0 012.035 12.035c0-5.503 4.478-9.98 9.996-9.98 5.518 0 9.987 4.477 9.987 9.98s-4.469 9.905-9.987 9.905zm5.483-7.48c-.301-.151-1.782-.88-2.059-.98-.277-.101-.479-.151-.68.15-.202.302-.781.981-.958 1.182-.176.201-.353.226-.654.075-1.425-.716-2.585-1.876-3.303-3.303-.151-.301.076-.453.226-.603.136-.136.302-.353.453-.529.151-.176.202-.302.302-.503.1-.202.05-.378-.025-.529-.076-.151-.68-1.638-.932-2.242-.244-.589-.493-.51-.68-.52h-.58c-.202 0-.529.076-.806.378-.277.302-1.058 1.032-1.058 2.518 0 1.486 1.083 2.922 1.234 3.123.151.202 2.13 3.254 5.161 4.564.721.312 1.283.498 1.722.637.724.23 1.383.197 1.902.12.58-.086 1.782-.728 2.034-1.433.252-.704.252-1.308.176-1.433-.075-.125-.277-.201-.578-.352z"/></svg>
+                          Demander un Devis
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+{/* =========================================================
+    2. SECTION : NOS PROJETS (Connecté à la Base de Données)
+========================================================= */}
+export const ProjectsSection: React.FC = () => {
+  // On crée un état pour stocker les projets venant de la base de données
+  const [projects, setProjects] = useState<any[]>([]); 
+
+  // Va chercher les données automatiquement au chargement de la page
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        // Appelle l'API automatique de Payload
+        const response = await fetch('/api/projects');
+        const data = await response.json();
+        if (data.docs) {
+          setProjects(data.docs); // Stocke les projets trouvés
+        }
+      } catch (error) {
+        console.error("Erreur de récupération des projets:", error);
+      }
+    };
+    fetchProjects();
+  }, []);
+
+  return (
+    <section id="projets" className="bg-[#0b0d16] text-white py-24 px-6 border-y border-white/5">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-12 text-center">
+          <h2 className="text-4xl font-montserrat font-bold mb-4">Nos <span className="text-gtt-secondary">Réalisations</span></h2>
+          <p className="text-gtt-muted font-roboto">La vitrine de notre expertise technique et créative.</p>
+        </div>
+
+        {/* AFFICHAGE CONDITIONNEL AUTOMATIQUE */}
+        {projects.length === 0 ? (
+          <div className="bg-[#12131a] border border-gtt-secondary/20 rounded-3xl p-10 md:p-16 text-center max-w-4xl mx-auto shadow-[0_0_40px_rgba(0,145,207,0.05)]">
+            <div className="w-20 h-20 bg-gtt-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 border border-gtt-primary/30">
+              <span className="text-3xl">✨</span>
+            </div>
+            <h3 className="text-2xl md:text-3xl font-montserrat font-bold text-white mb-4">
+              Soyez notre première grande réussite !
+            </h3>
+            <p className="text-gtt-muted font-roboto text-base md:text-lg leading-relaxed mb-8 max-w-2xl mx-auto">
+              Nous mettons actuellement en place nos infrastructures et finalisons nos offres. Nous n'avons pas encore de réalisations publiques à afficher, mais <strong>notre équipe de 8 experts</strong> est prête à transformer votre idée en un produit d'exception. Confiez-nous votre projet, vous ne le regretterez pas.
+            </p>
+            <a href="#contact" className="inline-flex items-center gap-3 bg-gtt-primary hover:bg-gtt-primary/90 text-white font-bold py-4 px-10 rounded-xl transition-all shadow-[0_0_20px_rgba(3,2,255,0.4)] hover:shadow-[0_0_30px_rgba(3,2,255,0.6)]">
+              <span>Lancer mon projet maintenant</span>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+            </a>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
+              {["Tous", "Développement web", "Applications mobiles", "Sécurité", "Design"].map((filter, i) => (
+                <span key={i} className={`px-4 py-2 rounded-full text-sm font-roboto cursor-pointer border transition-colors ${i === 0 ? 'bg-gtt-primary border-gtt-primary text-white' : 'border-white/20 text-gtt-muted hover:border-gtt-secondary hover:text-white'}`}>
+                  {filter}
+                </span>
+              ))}
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {projects.map((proj, i) => (
+                <div key={i} className="bg-gtt-card rounded-xl p-6 border border-white/5 hover:border-gtt-primary/50 transition-all hover:-translate-y-1">
+                  
+                  {/* Image du projet (ou placeholder si pas d'image) */}
+                  <div className="h-32 bg-[#1c1c24] rounded-lg mb-4 flex items-center justify-center overflow-hidden relative">
+                     {proj.image ? (
+                       <img src={proj.image.url} alt={proj.title} className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity" />
+                     ) : (
+                       <span className="text-gtt-primary font-bold opacity-30 text-4xl">GTT</span>
+                     )}
+                  </div>
+                  
+                  <h4 className="font-montserrat font-bold text-lg mb-2">{proj.title}</h4>
+                  <p className="text-xs text-gtt-secondary font-mono mb-4">{proj.technologies}</p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  )
+}
+
+{/* =========================================================
+    3. SECTION : ÉQUIPE & VALEURS 
+========================================================= */}
+const iconClass = 'w-12 h-12 md:w-14 md:h-14';
+const RocketIcon = (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={iconClass}><path d="M13.5 4.5C15.4 2.6 18.2 1.7 21 2c.3 2.8-.6 5.6-2.5 7.5l-2.1 2.1" /><path d="M9.5 6.5L5 5l-3 3 6 2" /><path d="M17.5 14.5L19 19l-3 3-2-6" /><path d="M8.5 15.5L5 19" /><path d="M4.5 20.5l-2 1" /><path d="M5.5 17.5l-1-1" /><path d="M11.5 12.5c-1.7 1.7-3.8 2.5-5.8 2.5" /></svg>);
+const HandshakeIcon = (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={iconClass}><path d="M8.5 12.5l2 2a2.8 2.8 0 004 0l4.5-4.5" /><path d="M7 7.5l2-2a3 3 0 014.2 0l1.3 1.3" /><path d="M16.5 7.5l1-1a3 3 0 014.2 4.2l-3 3" /><path d="M7.5 16.5l-1 1a3 3 0 01-4.2-4.2l2.2-2.2" /></svg>);
+const StarIcon = (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={iconClass}><path d="M12 3.5l2.35 4.76 5.25.76-3.8 3.7.9 5.23L12 15.48 7.3 17.95l.9-5.23-3.8-3.7 5.25-.76L12 3.5z" /></svg>);
+
+const values = [
+  { title: 'Innovation', description: 'Toujours en pointe des technologies pour vous offrir les meilleures solutions.', icon: RocketIcon, },
+  { title: 'Partenariat', description: 'Votre succès est notre priorité. Nous avançons main dans la main.', icon: HandshakeIcon, },
+  { title: 'Excellence', description: 'Qualité et performance garanties à chaque étape de votre projet.', icon: StarIcon, },
+];
+
+const teamMembers = [
+  { name: 'Giovanni', role: 'Lead', dept: 'Infographie & Design', img: '/team-placeholder.png', portfolioUrl: 'https://portfolio-giovanni-murex.vercel.app/' },
+  { name: 'Emmanuel', role: 'Lead', dept: 'Développement & Programmation', img: '/team-placeholder.png' },
+  { name: 'Pablo', role: 'Lead', dept: 'Support Informatique & Assistance', img: '/team-placeholder.png' },
+  { name: 'Esther', role: 'Lead', dept: 'Cybersécurité & Réseaux', img: '/team-placeholder.png' },
+];
+
+const MEMBER_CARD_CSS = `
+.gtt-member {
+  --photo-zoom: 0.80;
+  container-type: inline-size;
+  display: flex;
+  width: 100%;
+  max-width: 20rem;
+}
+.gtt-member__stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  padding-top: 52cqw;
+}
+.gtt-member__card {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  min-height: 76cqw;
+  padding: 22.5cqw 3.5cqw 4.4cqw;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+.gtt-member:hover .gtt-member__card {
+  transform: translateY(-2.4cqw);
+}
+.gtt-member__body {
+  position: absolute;
+  inset: 11.5cqw 0 0 0;
+  border: 2px solid rgba(3, 2, 255, 0.26);
+  border-top: 0;
+  border-radius: 0 0 7cqw 7cqw;
+  box-shadow: 0 0 6px rgba(3, 2, 255, 0.5);
+  transition: box-shadow 0.3s ease;
+}
+.gtt-member__top {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 23cqw;
+  border-radius: 50%;
+  background: linear-gradient(to bottom, #151518 0%, #151559 50%, #171767 100%);
+  box-shadow: inset 0 -4.6cqw 2cqw 0 #121396;
+  transition: box-shadow 0.3s ease;
+}
+.gtt-member:hover .gtt-member__body {
+  box-shadow: 0 0 18px rgba(3, 2, 255, 0.55);
+}
+.gtt-member:hover .gtt-member__top {
+  box-shadow: inset 0 -4.6cqw 2cqw 0 #1a1bd6;
+}
+.gtt-member__photo {
+  position: absolute;
+  inset: -52cqw 0 auto 0;
+  height: 64cqw;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+}
+.gtt-member__photo img {
+  position: relative;
+  left: 50%;
+  display: block;
+  width: calc(100cqw * var(--photo-zoom));
+  max-width: none;
+  height: auto;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: 50% 0;
+  transform: translateX(-50%);
+}
+.gtt-member__fallback {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46cqw;
+  height: 46cqw;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #303030;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 18cqw;
+  font-weight: 700;
+}
+.gtt-member__name,
+.gtt-member__role,
+.gtt-member__dept,
+.gtt-member__btn {
+  position: relative;
+  z-index: 3;
+}
+.gtt-member__name {
+  margin: 0;
+  font-size: 15cqw;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: #fff;
+}
+.gtt-member__role {
+  margin-top: 1cqw;
+  font-size: max(11px, 5.3cqw);
+  line-height: 1;
+  color: #fff;
+}
+.gtt-member__dept {
+  margin: 2cqw 0 2cqw;
+  font-size: max(11px, 5.8cqw);
+  line-height: 1.25;
+  color: rgba(255, 255, 255, 0.9);
+}
+.gtt-member__btn {
+  margin-top: auto;
+  padding: 0.8cqw 5.2cqw;
+  border: 0;
+  border-radius: 999px;
+  background: #191a65;
+  color: #fff;
+  font-size: max(13px, 9.4cqw);
+  font-weight: 700;
+  line-height: 1.1;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.15s ease;
+}
+.gtt-member__btn:hover {
+  background: #0302ff;
+  box-shadow: 0 0 18px rgba(3, 2, 255, 0.55);
+}
+.gtt-member__btn:active {
+  transform: scale(0.95);
+}
+`;
+
+const TeamPhoto: React.FC<{ src: string; name: string }> = ({ src, name }) => {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div className="gtt-member__photo">
+      {failed ? (
+        <div className="gtt-member__fallback font-montserrat">{name.charAt(0)}</div>
+      ) : (
+        <img src={src} alt={name} onError={() => setFailed(true)} />
+      )}
+    </div>
+  );
+};
+
+const TeamMemberCard: React.FC<{ member: any }> = ({ member }) => (
+  <article className="gtt-member">
+    <div className="gtt-member__stage">
+      <div className="gtt-member__card">
+        <span className="gtt-member__body" aria-hidden="true" />
+        <span className="gtt-member__top" aria-hidden="true" />
+        <TeamPhoto src={member.img} name={member.name} />
+        <h3 className="gtt-member__name font-montserrat font-bold">{member.name}</h3>
+        <span className="gtt-member__role font-roboto">{member.role}</span>
+        <p className="gtt-member__dept font-roboto">{member.dept}</p>
+        {member.portfolioUrl ? (
+          <a
+            href={member.portfolioUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="gtt-member__btn font-roboto"
+          >
+            voir Portfolio
+          </a>
+        ) : (
+          <button className="gtt-member__btn font-roboto">Pas de Portfolio</button>
+        )}
+      </div>
+    </div>
+  </article>
+);
+
+export const TeamValuesSection: React.FC = () => {
+  return (
+    <section id="equipe" className="relative overflow-hidden bg-[#242424] px-5 py-20 sm:px-8 md:py-24 lg:px-12 lg:py-28">
+      <style>{MEMBER_CARD_CSS}</style>
+      <div className="relative z-10 mx-auto grid w-full max-w-[1280px] grid-cols-1 lg:grid-cols-2">
+        <div className="flex flex-col pb-16 pr-0 lg:pb-0 lg:pr-16 xl:pr-20">
+          <h2 className="mb-12 font-montserrat text-[46px] font-bold leading-none tracking-[-0.03em] text-white sm:text-[54px] lg:text-[58px] xl:text-[64px]">
+            Nos Valeurs
+          </h2>
+          <div className="flex flex-col gap-6 md:gap-7 lg:flex-1 lg:justify-between">
+            {values.map((value) => (
+              <article key={value.title} className="group flex min-h-[165px] overflow-hidden rounded-[22px] border border-gtt-primary/80 bg-[#242424] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_12px_35px_rgba(3,2,255,0.16)] lg:min-h-[175px]">
+                <div className="flex w-[88px] shrink-0 items-center justify-center bg-gtt-primary text-white transition-colors duration-300 group-hover:bg-[#1212ed] sm:w-[100px] md:w-[110px]">
+                  {value.icon}
+                </div>
+                <div className="flex flex-1 flex-col items-center justify-center px-5 py-7 text-center sm:px-8 md:px-10">
+                  <h3 className="font-montserrat text-[28px] font-bold leading-none text-white underline decoration-white decoration-[3px] underline-offset-[9px] sm:text-[32px] md:text-[36px]">
+                    {value.title}
+                  </h3>
+                  <p className="mt-8 max-w-[400px] font-roboto text-sm leading-6 text-white/80">
+                    {value.description}
+                  </p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+        <div className="absolute bottom-0 left-1/2 top-0 hidden w-px bg-white/55 lg:block" />
+        <div className="pl-0 lg:pl-10 xl:pl-16">
+          <h2 className="mb-8 font-montserrat text-[46px] font-bold leading-none tracking-[-0.03em] text-white sm:text-[54px] lg:text-[58px] xl:text-[64px]">
+            Notre Equipe
+          </h2>
+          <div className="grid grid-cols-1 justify-items-center gap-x-8 gap-y-5 sm:grid-cols-2 xl:gap-x-20">
+            {teamMembers.map((member) => (
+              <TeamMemberCard key={member.name} member={member} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+{/* =========================================================
+    4. SECTION : CONTACT 
+========================================================= */}
+export const ContactSection: React.FC = () => {
+  const [phone, setPhone] = useState<string | undefined>();
+  const [phoneError, setPhoneError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setPhoneError(''); 
+    
+    if (!phone || !isValidPhoneNumber(phone)) {
+      setPhoneError("Le numéro saisi n'est pas valide pour ce pays.");
+      return; // On bloque l'envoi
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus('idle');
+
+    const formData = new FormData(e.currentTarget);
+    const data = {
+      name: formData.get('name'),
+      email: formData.get('email'),
+      company: formData.get('company'),
+      phone: phone,
+      type: formData.get('type'),
+      message: formData.get('message'),
+    };
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (response.ok) {
+        setSubmitStatus('success');
+        (e.target as HTMLFormElement).reset();
+        setPhone('');
+      } else {
+        setSubmitStatus('error');
+      }
+    } catch (error) {
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    };
+  };
+
+  return (
+    <section id="contact" className="bg-gtt-bg py-24 px-6 relative overflow-hidden">
+      <style>{`
+        .gtt-phone-input {
+          display: flex;
+          align-items: center;
+        }
+        .gtt-phone-input .PhoneInputInput {
+          background: transparent !important;
+          border: none !important;
+          color: white !important;
+          outline: none !important;
+          font-family: 'Roboto', sans-serif;
+          font-size: 0.875rem;
+          width: 100%;
+        }
+        .gtt-phone-input .PhoneInputCountry {
+          margin-right: 12px;
+          display: flex;
+          align-items: center;
+        }
+        .gtt-phone-input .PhoneInputCountryIcon {
+          width: 28px !important;
+          height: 20px !important;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .gtt-phone-input .PhoneInputCountryIconImg {
+          width: 100% !important;
+          height: 100% !important;
+          object-fit: cover;
+          display: block;
+        }
+        .gtt-phone-input .PhoneInputCountrySelect {
+          background-color: #0b0c13 !important;
+          color: white !important;
+        }
+        .gtt-phone-input .PhoneInputCountryIcon--border {
+          border: none !important;
+          box-shadow: none !important;
+          border-radius: 4px;
+          overflow: hidden;
+        }
+      `}</style>
+
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-2xl h-40 bg-gtt-primary/10 blur-[100px] pointer-events-none"></div>
+
+      <div className="max-w-4xl mx-auto relative z-10">
+        <div className="text-center mb-12">
+          <h2 className="text-4xl md:text-5xl font-montserrat font-bold text-white mb-4">
+            Contactez-<span className="text-gtt-primary">nous</span>
+          </h2>
+          <p className="text-gtt-muted font-roboto text-sm md:text-base">
+            Qualifiez votre demande, nous vous répondons en moins de 24h.
+          </p>
+        </div>
+
+        <div className="bg-[#15161c] p-8 md:p-12 rounded-[2rem] border border-white/5 shadow-2xl">
+          {submitStatus === 'success' ? (
+            <div className="text-center py-12 animate-in fade-in zoom-in duration-500">
+              <div className="w-20 h-20 bg-green-500/20 border border-green-500/50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-10 h-10 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+              </div>
+              <h3 className="text-2xl font-montserrat font-bold text-white mb-2">Demande envoyée avec succès !</h3>
+              <p className="text-gtt-muted font-roboto">Merci de nous avoir contactés. Notre équipe vous reviendra très rapidement.</p>
+              <button onClick={() => setSubmitStatus('idle')} className="mt-8 text-gtt-primary hover:text-white transition-colors underline underline-offset-4">
+                Envoyer un autre message
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <input type="text" name="name" placeholder="Nom complet *" required className="w-full bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 text-sm focus:border-gtt-primary focus:ring-1 focus:ring-gtt-primary transition-all outline-none" />
+              </div>
+              <div>
+                <input type="email" name="email" placeholder="Adresse e-mail *" required className="w-full bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 text-sm focus:border-gtt-primary focus:ring-1 focus:ring-gtt-primary transition-all outline-none" />
+              </div>
+              <div className="md:col-span-2">
+                <input type="text" name="company" placeholder="Entreprise (Optionnel)" className="w-full bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 text-sm focus:border-gtt-primary focus:ring-1 focus:ring-gtt-primary transition-all outline-none" />
+              </div>
+              <div className="md:col-span-2 bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 focus-within:border-gtt-primary focus-within:ring-1 focus-within:ring-gtt-primary transition-all text-white">
+                <PhoneInput international defaultCountry="TG" value={phone} onChange={setPhone} className="gtt-phone-input w-full outline-none" placeholder="Numéro WhatsApp *" required />
+              </div>
+              {phoneError && (
+                <span className="text-red-500 text-xs mt-1 ml-2">{phoneError}</span>
+              )}
+              <div className="md:col-span-2">
+                <select name="type" required defaultValue="" className="w-full bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 text-white/70 focus:text-white text-sm focus:border-gtt-primary focus:ring-1 focus:ring-gtt-primary transition-all outline-none appearance-none cursor-pointer">
+                  <option value="" disabled hidden>Type de demande (Dev, Cyber, Design...) *</option>
+                  <option value="Développement Sur Mesure">Développement Sur Mesure</option>
+                  <option value="Cybersécurité & Réseaux">Cybersécurité & Réseaux</option>
+                  <option value="Infographie & Design">Infographie & Design</option>
+                  <option value="Support Informatique">Support Informatique</option>
+                  <option value="Projet complet">Projet complet</option>
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <textarea name="message" placeholder="Votre message détaillé... *" required rows={5} className="w-full bg-[#0b0c13] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-500 text-sm focus:border-gtt-primary focus:ring-1 focus:ring-gtt-primary transition-all resize-none outline-none"></textarea>
+              </div>
+
+              {submitStatus === 'error' && (
+                <div className="md:col-span-2 text-red-500 text-sm font-roboto text-center bg-red-500/10 py-3 rounded-lg border border-red-500/20">
+                  Une erreur est survenue lors de l'envoi. Veuillez réessayer.
+                </div>
+              )}
+              
+              <div className="md:col-span-2 mt-2">
+                <button type="submit" disabled={isSubmitting || !phone} className={`w-full flex items-center justify-center gap-3 font-bold py-4 rounded-xl transition-all ${isSubmitting || !phone ? 'bg-gtt-primary/50 text-white/50 cursor-not-allowed' : 'bg-gtt-primary hover:bg-gtt-primary/90 text-white shadow-[0_0_20px_rgba(3,2,255,0.3)] hover:shadow-[0_0_30px_rgba(3,2,255,0.5)]'}`}>
+                  {isSubmitting ? (<span className="animate-pulse">Envoi en cours...</span>) : (<><span>Envoyer la demande</span><svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></>)}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+
+        <div className="mt-12 pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+          <a href="mailto:gigatechteamgtt@gmail.com" className="flex items-center gap-4 text-gtt-muted hover:text-white transition-colors group">
+            <div className="w-12 h-12 rounded-full bg-[#15161c] border border-white/10 flex items-center justify-center group-hover:bg-gtt-primary/20 group-hover:border-gtt-primary/50 transition-all shadow-sm">
+              <svg className="w-5 h-5 text-gtt-secondary group-hover:text-gtt-primary" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+            </div>
+            <span className="font-roboto text-sm md:text-base font-medium">gigatechteamgtt@gmail.com</span>
+          </a>
+
+          <a href="https://wa.me/22871650631" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 text-gtt-muted hover:text-white transition-colors group">
+            <div className="w-12 h-12 rounded-full bg-[#15161c] border border-white/10 flex items-center justify-center group-hover:bg-[#25D366]/20 group-hover:border-[#25D366]/50 transition-all shadow-sm group-hover:shadow-[0_0_15px_rgba(37,211,102,0.3)]">
+              <svg className="w-6 h-6 text-[#25D366]" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 0C5.385 0 0 5.388 0 12.035c0 2.122.553 4.195 1.604 6.01L.062 24l6.113-1.603a12.052 12.052 0 005.856 1.523h.005c6.645 0 12.031-5.388 12.031-12.035C24 5.4 18.675 0 12.031 0zm0 21.94c-1.796 0-3.555-.483-5.093-1.396l-.365-.216-3.784.992 1.008-3.69-.237-.377A9.97 9.97 0 012.035 12.035c0-5.503 4.478-9.98 9.996-9.98 5.518 0 9.987 4.477 9.987 9.98s-4.469 9.905-9.987 9.905zm5.483-7.48c-.301-.151-1.782-.88-2.059-.98-.277-.101-.479-.151-.68.15-.202.302-.781.981-.958 1.182-.176.201-.353.226-.654.075-1.425-.716-2.585-1.876-3.303-3.303-.151-.301.076-.453.226-.603.136-.136.302-.353.453-.529.151-.176.202-.302.302-.503.1-.202.05-.378-.025-.529-.076-.151-.68-1.638-.932-2.242-.244-.589-.493-.51-.68-.52h-.58c-.202 0-.529.076-.806.378-.277.302-1.058 1.032-1.058 2.518 0 1.486 1.083 2.922 1.234 3.123.151.202 2.13 3.254 5.161 4.564.721.312 1.283.498 1.722.637.724.23 1.383.197 1.902.12.58-.086 1.782-.728 2.034-1.433.252-.704.252-1.308.176-1.433-.075-.125-.277-.201-.578-.352z"/></svg>
+            </div>
+            <span className="font-roboto text-sm md:text-base font-medium">+228 71 65 06 31</span>
+          </a>
+        </div>
+
+      </div>
+    </section>
+  )
+}
+
+/* =========================================================
+    5. ORCHESTRATEUR PRINCIPAL (HERO avec Stats Sans Cache)
+========================================================= */
+export const HighImpactHero: React.FC<any> = () => {
+  const [stats, setStats] = useState({
+    projetsLances: 0,
+    clientsActuels: 0,
+    expertsTech: 8,
+    tauxSatisfaction: 100
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // L'option 'no-store' force Next.js à interroger la BDD à chaque visite (Pas de cache !)
+        const response = await fetch('/api/globals/statistiques', { cache: 'no-store' });
+        const data = await response.json();
+        
+        if (data) {
+          setStats({
+            // On vérifie !== undefined pour ne pas bloquer si la stat est mise à zéro
+            projetsLances: data.projetsLances !== undefined ? data.projetsLances : 0,
+            clientsActuels: data.clientsActuels !== undefined ? data.clientsActuels : 0,
+            expertsTech: data.expertsTech !== undefined ? data.expertsTech : 8,
+            tauxSatisfaction: data.tauxSatisfaction !== undefined ? data.tauxSatisfaction : 100
+          });
+        }
+      } catch (error) {
+        console.error("Erreur récupération stats:", error);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  return (
+    <> 
+      <section className="relative overflow-hidden bg-gtt-bg flex items-center justify-center min-h-[calc(100vh-80px)] py-4">
+        <div className="mx-auto w-full max-w-7xl px-4 lg:px-8">
+          <div className="rounded-3xl border border-gtt-secondary/25 bg-gradient-to-b from-gtt-card to-[#12131a] shadow-[0_0_50px_rgba(3,2,255,0.08)] overflow-hidden flex flex-col">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-12 items-center gap-8 px-6 py-8 lg:px-12 lg:py-10 flex-grow">
+              <div className="lg:col-span-7 flex flex-col items-center justify-center w-full">
+                
+                <div className="flex items-center justify-center gap-4 mb-6 w-full">
+                  <span className="h-[2px] w-12 sm:w-16 bg-gtt-secondary"></span>
+                  <p className="text-xs lg:text-sm font-montserrat font-medium uppercase tracking-[0.2em] text-white/90 text-center">
+                    GIGA TECH TEAM — <span className="text-gtt-secondary font-bold">SOLUTIONS TECH</span>
+                  </p>
+                  <span className="h-[2px] w-12 sm:w-16 bg-gtt-secondary"></span>
+                </div>
+                
+                <h1 className="font-montserrat font-bold leading-[1.2] tracking-tight flex flex-col items-center w-full">
+                  <span className="block whitespace-nowrap text-[clamp(1.2rem,3.2vw,3.5rem)] text-white text-center">
+                    Innovation Technologique
+                  </span>
+                  <span className="block text-center text-[clamp(1.1rem,2.5vw,2.5rem)] text-gtt-secondary mt-1">
+                    au Service de Votre Entreprise.
+                  </span>
+                </h1>
+                
+                <p className="mt-6 max-w-lg mx-auto text-sm sm:text-base lg:text-lg leading-relaxed text-gtt-muted font-roboto text-justify">
+                  Développement sur mesure, cybersécurité, réseaux & design. Nous créons des solutions digitales adaptées à vos besoins et à votre évolution.
+                </p>
+              </div>
+
+              <div className="lg:col-span-5 flex flex-col items-center justify-center">
+                <div className="group relative w-64 h-64 sm:w-72 sm:h-72 lg:w-80 lg:h-80 flex items-center justify-center motion-safe:animate-gtt-float motion-reduce:animate-none select-none">
+                  <div className="absolute inset-4 rounded-full bg-gtt-primary/20 blur-[40px] motion-safe:animate-gtt-glow pointer-events-none" />
+                  <div className="absolute inset-12 rounded-full bg-gtt-secondary/15 blur-[30px] motion-safe:animate-gtt-glow-soft pointer-events-none" />
+                  <div className="absolute inset-0 rounded-full border border-gtt-secondary/30 border-dashed motion-safe:animate-gtt-orbit pointer-events-none" />
+                  <div className="absolute inset-6 rounded-full border border-gtt-primary/40 motion-safe:animate-gtt-orbit-reverse pointer-events-none" />
+                  <div className="absolute inset-12 rounded-full border border-gtt-secondary/20 pointer-events-none" />
+                  <div className="relative z-10 w-40 h-40 sm:w-44 sm:h-44 flex items-center justify-center rounded-full bg-[#0b0d16]/90 backdrop-blur-md border border-gtt-primary/30 shadow-[0_0_40px_rgba(3,2,255,0.25)] transition-transform duration-500 group-hover:scale-105">
+                    <img src="/logo-gtt.png" alt="Logo Giga Tech Team" className="relative z-20 w-28 h-28 sm:w-32 sm:h-32 object-contain drop-shadow-[0_0_20px_rgba(3,2,255,0.5)]" />
+                  </div>
+                </div>
+                <div className="mt-4 sm:mt-6 flex flex-wrap sm:flex-nowrap items-center justify-center gap-3 sm:gap-4 w-full">
+                  <a href="#services" className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-gtt-primary hover:bg-gtt-primary/90 px-5 py-3 text-xs sm:text-sm font-roboto font-semibold text-white shadow-[0_0_25px_rgba(3,2,255,0.4)] transition-all duration-300 hover:-translate-y-0.5">
+                    <span>Découvrir nos services</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* PARTIE BASSE : STATS ANIMÉES & DYNAMIQUES */}
+            <div className="border-t border-white/10 bg-[#0d0e14]/60 px-6 py-5 lg:px-10 mt-auto">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-0 lg:divide-x lg:divide-white/10">
+                <div className="flex items-center justify-center lg:justify-start gap-3 lg:pr-6">
+                  <div className="text-gtt-secondary shrink-0"><span className="text-xl">🚀</span></div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-montserrat font-bold text-white">
+                      <AnimatedCounter end={stats.projetsLances} suffix="+" />
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-roboto text-gtt-muted mt-0.5 whitespace-nowrap">Projets lancés</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center lg:justify-start gap-3 lg:px-6">
+                  <div className="text-gtt-secondary shrink-0"><span className="text-xl">⭐</span></div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-montserrat font-bold text-white">
+                      <AnimatedCounter end={stats.clientsActuels} suffix="+" />
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-roboto text-gtt-muted mt-0.5 whitespace-nowrap">Clients actuels</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center lg:justify-start gap-3 lg:px-6">
+                  <div className="text-gtt-secondary shrink-0"><span className="text-xl">👨‍💻</span></div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-montserrat font-bold text-white">
+                      <AnimatedCounter end={stats.expertsTech} />
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-roboto text-gtt-muted mt-0.5 whitespace-nowrap">Experts techniques</div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-center lg:justify-start gap-3 lg:pl-6">
+                  <div className="text-gtt-secondary shrink-0"><span className="text-xl">📈</span></div>
+                  <div>
+                    <div className="text-xl sm:text-2xl font-montserrat font-bold text-white">
+                      <AnimatedCounter end={stats.tauxSatisfaction} suffix="%" />
+                    </div>
+                    <div className="text-[10px] sm:text-xs font-roboto text-gtt-muted mt-0.5 whitespace-nowrap">Engagement client</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+      </section>
+
+      <ServicesSection />
+      <ProjectsSection />
+      <TeamValuesSection />
+      <ContactSection />
+    </>
+  )
+}

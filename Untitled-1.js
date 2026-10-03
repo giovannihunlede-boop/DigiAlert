@@ -1,12 +1,11 @@
-export const BASE_URL ='';
-    // || import.meta.env.VITE_API_URL 
-export const API_BASE_URL = 'localhost:5294'; // 'http://localhost:5294'
-    // 'production' 
-    // ? 'https://digialert-api-giovanni.cfapps.us10-001.hana.ondemand.com' 
-    // : (import.meta.env.VITE_API_URL || '')
+// On fusionne tout dans une seule variable intelligente !
+export const API_BASE_URL = import.meta.env.MODE === 'production' 
+    ? 'https://digialert-api-giovanni.cfapps.us10-001.hana.ondemand.com' 
+    : (import.meta.env.VITE_API_URL || '');
 
 export const fetchWithAuth = async (endpoint, options = {}) => {
     const token = localStorage.getItem('jwtToken');
+    
     // en-têtes de la requête.
     const headers = {
         'Content-Type': 'application/json',
@@ -16,6 +15,8 @@ export const fetchWithAuth = async (endpoint, options = {}) => {
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
+    
+    // 👉 ICI on utilise bien API_BASE_URL !
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         ...options,
         headers,
@@ -36,4 +37,5 @@ const api = {
     put: (endpoint, data) => fetchWithAuth(endpoint, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (endpoint) => fetchWithAuth(endpoint, { method: 'DELETE' }),
 };
+
 export default api;

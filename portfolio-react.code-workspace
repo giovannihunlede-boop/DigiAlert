@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"name": "portfolio-react",
+			"path": "../../../../development/portfolio-react"
+		},
+		{
+			"name": "ProjetNet-Github",
+			"path": "../../../../development/ProjetNet-Github"
+		},
+		{
+			"name": "API-app1_Fix",
+			"path": "../../../../development/projet_C#/API-app1_Fix"
+		},
+		{
+			"name": "Programs",
+			"path": "."
+		},
+		{
+			"path": "../../../../development/payload-website-starter"
+		}
+	],
+	"settings": {}
+}

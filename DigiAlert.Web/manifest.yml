@@ -1,0 +1,5 @@
+applications:
+  - name: digialert-web-giovanni
+    path: ./dist
+    memory: 128M
+    buildpack: staticfile_buildpack
