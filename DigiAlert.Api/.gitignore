@@ -1,0 +1,11 @@
+
+[Bb]in/
+[Oo]bj/
+out/
+
+appsettings.Local.json
+
+.vscode/
+.vs/
+*.user
+*.suo

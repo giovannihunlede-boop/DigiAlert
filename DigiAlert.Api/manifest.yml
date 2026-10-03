@@ -1,0 +1,9 @@
+applications:
+  - name: digialert-api-giovanni
+    path: ./publish
+    memory: 512M
+    buildpack: binary_buildpack
+    command: ./DigiAlert.Api --urls http://0.0.0.0:$PORT
+    env:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ConnectionStrings__DefaultConnection: "Host=postgres-e6af1a7b-f8ea-4831-8ed5-551e25ee0b6a.cqryblsdrbcs.us-east-1.rds.amazonaws.com;Port=4544;Username=4f762923c953;Password=701dc3e2ad8571ea246e770853b2d71;Database=odtgnCWALHTX;SSL Mode=Require;Trust Server Certificate=true;"
