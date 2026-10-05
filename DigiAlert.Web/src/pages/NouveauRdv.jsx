@@ -1,10 +1,11 @@
  import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageSquare, UserIcon,Calendar as CalendarIcon, Check, X, Plus, Clock } from 'lucide-react';
 import { fetchWithAuth } from '../services/api';
 import { Trash2, Mail } from 'lucide-react';
 
 const NouveauRdv = () => {
+  const navigate = useNavigate();
   const [showMsgModal, setShowMsgModal] = useState(false);
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
@@ -199,27 +200,63 @@ const NouveauRdv = () => {
   const [dbContacts, setDbContacts] = useState([]);
   const [dbTemplates, setDbTemplates] = useState([]);
 
-  useEffect(() => {
-    const loadContacts = async () => {
-      const res = await fetchWithAuth('/api/Contacts');
-      if (res.ok) {
-        const data = await res.json();
-        setDbContacts(data);
-      }
-    };
-    loadContacts();
-
-    const loadData = async () => {
-      // Charger les contacts
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      // 1. Charger les contacts
       const resContacts = await fetchWithAuth('/api/Contacts');
-      if (resContacts.ok) setDbContacts(await resContacts.json());
+      if (resContacts.ok) {
+        const jsonContacts = await resContacts.json();
+        
+        let contactsArray = [];
+        
+        // On cherche le tableau, quel que soit le nom de la variable utilisée par votre backend C#
+        if (Array.isArray(jsonContacts)) {
+          contactsArray = jsonContacts;
+        } else if (jsonContacts.items && Array.isArray(jsonContacts.items)) {
+          contactsArray = jsonContacts.items; // Format paginé classique
+        } else if (jsonContacts.Items && Array.isArray(jsonContacts.Items)) {
+          contactsArray = jsonContacts.Items; // Format paginé C# (Majuscule)
+        } else if (jsonContacts.data && Array.isArray(jsonContacts.data)) {
+          contactsArray = jsonContacts.data;
+        } else if (jsonContacts.$values && Array.isArray(jsonContacts.$values)) {
+          contactsArray = jsonContacts.$values; // Format System.Text.Json (Preserve References)
+        } else {
+          // Ultime recours : on cherche n'importe quel tableau dans l'objet
+          const found = Object.values(jsonContacts).find(v => Array.isArray(v));
+          if (found) contactsArray = found;
+        }
 
-      // Charger les Templates
+        setDbContacts(contactsArray);
+      }
+
+      // 2. Charger les Templates
       const resTemplates = await fetchWithAuth('/api/SmsTemplates');
-      if (resTemplates.ok) setDbTemplates(await resTemplates.json());
-    };
-    loadData();
-  }, []);
+      if (resTemplates.ok) {
+        const jsonTemplates = await resTemplates.json();
+        
+        let templatesArray = [];
+        if (Array.isArray(jsonTemplates)) templatesArray = jsonTemplates;
+        else if (jsonTemplates.items && Array.isArray(jsonTemplates.items)) templatesArray = jsonTemplates.items;
+        else if (jsonTemplates.Items && Array.isArray(jsonTemplates.Items)) templatesArray = jsonTemplates.Items;
+        else if (jsonTemplates.data && Array.isArray(jsonTemplates.data)) templatesArray = jsonTemplates.data;
+        else if (jsonTemplates.$values && Array.isArray(jsonTemplates.$values)) templatesArray = jsonTemplates.$values;
+        else {
+          const found = Object.values(jsonTemplates).find(v => Array.isArray(v));
+          if (found) templatesArray = found;
+        }
+        
+        setDbTemplates(templatesArray);
+      }
+    } catch (error) {
+      console.error("Erreur API:", error);
+      setDbContacts([]);
+      setDbTemplates([]);
+    }
+  };
+
+  loadData();
+}, []);
 
   const [RécurrenceRows, setRécurrenceRows] = useState([
     { id: 1, date: '', heure: '', repeat: 'Non' }
@@ -378,45 +415,41 @@ const NouveauRdv = () => {
 
       // 3. boucle sur chaque date pour créer l'événement et ses rappels
       for (const startDate of datesToProcess) {
-        
+        // 1. Filtrage des dates passées dans le bloc 'if'
         if (startDate.getTime() <= new Date().getTime()) {
           console.warn(`La date ${startDate.toLocaleString()} est dans le passé, ignorée.`);
-          continue; 
+          continue;
         }
 
         const startDateTime = startDate.toISOString();
         const durationMins = formData.duree ? parseInt(formData.duree) : 45;
+
+        // 2. Ajout des symboles '=' et correction des backticks pour l'URL
         const endDateTime = new Date(startDate.getTime() + durationMins * 60000).toISOString();
-
         const isUpdate = editEventId !== null;
-
-        
-        if (tempRappelDate && tempRappelHeure) {
-          finalRappels.push({ date: tempRappelDate, heure: tempRappelHeure });
-        }
-
         const url = isUpdate ? `/api/Events/${editEventId}` : '/api/Events';
         const method = isUpdate ? 'PUT' : 'POST';
 
         const evtRes = await fetchWithAuth(url, {
           method: method,
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             title: formData.titre,
             startDateTime: startDateTime,
-            endDatetime: endDateTime, 
-            startDatetime: startDateTime, 
-            contactIds: formData.clients.map(c => c.idContact || c.IdContact || c.id).filter(id => id),
+            endDatetime: endDateTime,
+            contactIds: formData.clients.map(c => c.idContact || c.IdContact || c.id).filter(Boolean),
           }),
         });
 
+        // 3. Encapsulation de la levée d'erreur dans le bloc 'if (!evtRes.ok)'
         if (!evtRes.ok) {
-           const errText = await evtRes.text();
-           let errMsg = errText;
-           try { 
-               const errObj = JSON.parse(errText); 
-               errMsg = errObj.message || errObj.Message || errObj.title || errText; 
-           } catch(e){}
-           throw new Error(`L'événement a été refusé : \n${errMsg}`);
+          const errText = await evtRes.text();
+          let errMsg = errText;
+          try {
+            const errObj = JSON.parse(errText);
+            errMsg = errObj.message || errObj.Message || errObj.title || errText;
+          } catch (e) {}
+          throw new Error(`L'événement a été refusé : \n${errMsg}`);
         }
         const evtData = await evtRes.json();
         const finalEventId = isUpdate ? editEventId : (evtData.idEvent || evtData.IdEvent);
@@ -615,8 +648,8 @@ const NouveauRdv = () => {
               
 
               {showClientDropdown && !isUpdate && (
-                <div className="absolute z-40 mt-2 w-full bg-white border rounded-lg shadow-md max-h-48 overflow-auto">
-                    {dbContacts.map((c) => {
+              <div className="absolute z-40 mt-2 w-full bg-white border rounded-lg shadow-md max-h-48 overflow-auto">
+                {Array.isArray(dbContacts) && dbContacts.map((c) => {
                     const fullName = `${c.firstName} ${c.lastName || ''}`.trim();
                     const exists = formData.clients.some(client => client.idContact === c.idContact);
                     
@@ -1012,7 +1045,7 @@ const NouveauRdv = () => {
                     const earliestMs = Math.min(...validRecs.map(r => new Date(`${r.date}T${r.heure}:00`).getTime()));
                     const earliestDate = new Date(earliestMs);
                     const pad = n => String(n).padStart(2, '0');
-                    baseDateStr = `${earliestDate.getFullYear()}-${pad(earliestDate.getMonth()+1)}-${pad(earliestDate.getDate())}`;
+                    baseDateStr = `${earliestDate.getFullYear()}-${pad(earliestDate.getMonth() + 1)}-${pad(earliestDate.getDate())}`;
                     baseTimeStr = `${pad(earliestDate.getHours())}:${pad(earliestDate.getMinutes())}`;
                   } else {
                     if (!baseDateStr || !baseTimeStr) return alert("Veuillez d'abord définir la date et l'heure de l'événement à gauche.");
@@ -1086,7 +1119,9 @@ const NouveauRdv = () => {
               <div className="flex-1 md:border-r border-slate-100 md:pr-6">
                 <h3 className="text-xl font-bold text-center mb-4 text-brand-dark">Liste Messages</h3>
                 <div className="space-y-3 max-h-[220px] md:max-h-[300px] overflow-y-auto pr-2">
-                  {dbTemplates.map((tpl) => (
+                  
+                  {/* 1. Sécurité sur le .map() des templates */}
+                  {Array.isArray(dbTemplates) && dbTemplates.map((tpl) => (
                     <button 
                       key={tpl.idTemplate}
                       type="button"
@@ -1097,9 +1132,14 @@ const NouveauRdv = () => {
                       <span className="truncate">{tpl.templateName}</span>
                     </button>
                   ))}
-                  {dbTemplates.length === 0 && (
-                    <p className="text-sm text-slate-500 italic text-center">Aucun modèle. Allez dans Paramètres.</p>
+
+                  {/* 2. Sécurité sur le .length pour le message "Aucun modèle" */}
+                  {(!Array.isArray(dbTemplates) || dbTemplates.length === 0) && (
+                    <p className="text-sm text-slate-500 italic text-center">
+                      Aucun modèle. Allez dans Paramètres.
+                    </p>
                   )}
+                  
                 </div>
               </div>
 

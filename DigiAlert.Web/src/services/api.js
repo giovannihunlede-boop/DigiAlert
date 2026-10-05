@@ -1,6 +1,6 @@
 export const BASE_URL ='';
     // || import.meta.env.VITE_API_URL 
-export const API_BASE_URL = 'localhost:5294'; // 'http://localhost:5294'
+export const API_BASE_URL = ''; // 'http://localhost:5294'
     // 'production' 
     // ? 'https://digialert-api-giovanni.cfapps.us10-001.hana.ondemand.com' 
     // : (import.meta.env.VITE_API_URL || '')

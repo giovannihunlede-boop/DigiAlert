@@ -12,6 +12,7 @@ namespace DigiAlert.Api.DTOs
     public class ForgotPasswordDto
     {
         public string Email { get; set; } = string.Empty;
+        public string? ClientUrl { get; set; }
     }
 
     public class ResetPasswordDto

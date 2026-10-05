@@ -113,8 +113,12 @@ namespace DigiAlert.Api.Services
                             {
                                 _logger.LogInformation($"Tentative d'envoi d'un Email via API à {reminder.Contact.Email}...");
 
-                                var smtpFrom = reminder.Event?.User?.EmailSender?.Trim();
-                                var apiKey = reminder.Event?.User?.EmailApiKey?.Trim(); 
+                                // 1. On nettoie brutalement les potentiels guillemets ou espaces invisibles sauvés en BDD
+                                var smtpFrom = reminder.Event?.User?.EmailSender?.Trim().Replace("\"", "").Replace(" ", "");
+                                var apiKey = reminder.Event?.User?.EmailApiKey?.Trim().Replace("\"", "").Replace(" ", ""); 
+
+                                // DEBUG : Ça va s'afficher dans votre terminal pour qu'on voit EXACTEMENT ce qui est envoyé !
+                                _logger.LogInformation($"[DEBUG] Clé Brevo utilisée : '{apiKey}'");
 
                                 if (string.IsNullOrWhiteSpace(smtpFrom) || string.IsNullOrWhiteSpace(apiKey))
                                 {
@@ -130,7 +134,11 @@ namespace DigiAlert.Api.Services
                                 var bodyText = $"{finalMessage}\n\nDate: {reminder.Event?.StartDateTime:g}\n\nCordialement,\n{companyName}";
 
                                 var httpClient = _httpClientFactory.CreateClient("BrevoClient");
+
+                                // 2. On s'assure d'avoir un client propre et on ajoute les bons headers Brevo
+                                httpClient.DefaultRequestHeaders.Clear();
                                 httpClient.DefaultRequestHeaders.Add("api-key", apiKey);
+                                httpClient.DefaultRequestHeaders.Add("accept", "application/json");
 
                                 var payload = new
                                 {
