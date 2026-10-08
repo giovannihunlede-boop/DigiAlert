@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { MessageSquare, Calendar as CalendarIcon, Check, X, Plus, Clock, User, Search, Mail, Edit2, Trash2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { MessageSquare, Calendar as CalendarIcon, Check, X, Plus, Clock, User, Search, Mail, Edit2, Trash2, Upload, Download } from 'lucide-react';
 import { fetchWithAuth } from '../services/api';
 import 'react-phone-number-input/style.css'; 
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
@@ -19,6 +19,54 @@ const Contacts = () => {
         phoneNumber: '',
         email: ''
     });
+
+    // --- GESTION DE L'IMPORT ---
+    const [isImporting, setIsImporting] = useState(false);
+    const fileInputRef = useRef(null);
+
+    const handleFileUpload = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+        alert("Veuillez sélectionner un fichier CSV.");
+        return;
+        }
+
+        setIsImporting(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+        // On récupère le token manuellement
+        const token = localStorage.getItem('jwtToken');
+        
+        // On utilise fetch() nativement pour éviter que fetchWithAuth n'ajoute "application/json"
+        const response = await fetch('/api/Contacts/import', {
+            method: 'POST',
+            headers: {
+            'Authorization': `Bearer ${token}`
+            // IMPORTANT: Surtout pas de Content-Type ici, le navigateur le gère tout seul avec FormData !
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert(result.message);
+            loadContacts(); // Rafraîchit la liste
+        } else {
+            const errorData = await response.json().catch(() => ({}));
+            alert(`Erreur lors de l'import: ${errorData.message || "Fichier invalide ou problème serveur."}`);
+        }
+        } catch (error) {
+        console.error("Erreur d'import:", error);
+        alert("Erreur réseau pendant l'importation.");
+        } finally {
+        setIsImporting(false);
+        e.target.value = ''; // Réinitialise l'input
+        }
+    };
 
     useEffect(() => {
         setPage(1);
@@ -148,21 +196,47 @@ const Contacts = () => {
     return (
         <div className="p-4 md:p-6 bg-slate-50 h-screen flex flex-col overflow-hidden">
             {/* En-tête adaptable aux petits écrans. */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <User className="text-blue-600" /> Vos Contacts
-                </h1>
-                <button
-                    onClick={() => {
-                        setEditingContactId(null);
-                        setFormData({ firstName: '', lastName: '', phoneNumber: '', email: '' });
-                        setIsModalOpen(true);
-                    }}
-                    className="w-full sm:w-auto flex items-center justify-center bg-brand-red hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-brand-red/20 transition-all active:scale-95"
-                >
-                    <Plus size={20} className="mr-1" /> Ajouter un contact
-                </button>
-            </div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+            <User className="text-blue-600" /> Vos Contacts
+          </h1>
+          
+          {/* Conteneur des boutons */}
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-3">
+            
+            {/* Input fichier caché */}
+            <input 
+              type="file" 
+              accept=".csv" 
+              ref={fileInputRef} 
+              onChange={handleFileUpload} 
+              className="hidden" 
+            />
+
+            {/* Bouton Importer CSV */}
+            <button
+              onClick={() => fileInputRef.current.click()}
+              disabled={isImporting}
+              className="w-full sm:w-auto flex items-center justify-center bg-white border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700 px-5 py-2.5 rounded-xl font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+              title="Le CSV doit contenir 4 colonnes: Prénom, Nom, Téléphone, Email"
+            >
+              <Upload size={20} className="mr-2" /> 
+              {isImporting ? 'Importation...' : 'Importer CSV'}
+            </button>
+
+            {/* Bouton Ajouter Classique */}
+            <button
+              onClick={() => {
+                setEditingContactId(null);
+                setFormData({ firstName: '', lastName: '', phoneNumber: '', email: '' });
+                setIsModalOpen(true);
+              }}
+              className="w-full sm:w-auto flex items-center justify-center bg-brand-red hover:bg-rose-700 text-white px-5 py-2.5 rounded-xl font-bold shadow-md shadow-brand-red/20 transition-all active:scale-95"
+            >
+              <Plus size={20} className="mr-1" /> Ajouter
+            </button>
+          </div>
+        </div>
 
             {/* Barre de recherche */}
             <div className="relative mb-6 shrink-0">

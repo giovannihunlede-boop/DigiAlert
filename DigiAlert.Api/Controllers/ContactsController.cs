@@ -159,6 +159,106 @@ namespace DigiAlert.Api.Controllers
 
             return NoContent(); // Code 204: Supprimé avec succès
         }
+
+        // POST: api/Contacts/import
+        [HttpPost("import")]
+        public async Task<IActionResult> ImportContacts([FromForm] IFormFile file)
+        {
+            // 1. Sécurité : Vérification du fichier
+            if (file == null || file.Length == 0)
+                return BadRequest(new { message = "Fichier vide ou manquant." });
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                return BadRequest(new { message = "Veuillez fournir un fichier au format CSV." });
+
+            Guid userId = GetUserIdFromToken();
+
+            // 2. Chargement des données existantes pour éviter les doublons rapidement
+            var existingContacts = await _context.Contacts.AsNoTracking().Where(c => c.IdUser == userId).ToListAsync();
+            var existingPhones = existingContacts.Select(c => c.PhoneNumber).ToHashSet();
+            var existingEmails = existingContacts.Where(c => !string.IsNullOrWhiteSpace(c.Email)).Select(c => c.Email).ToHashSet();
+
+            var newContacts = new List<Contact>();
+            int skipped = 0;
+            int imported = 0;
+
+            // 3. Lecture du fichier CSV
+            using (var stream = new StreamReader(file.OpenReadStream()))
+            {
+                // On lit (et ignore) la première ligne qui correspond aux entêtes de colonnes
+                var headerLine = await stream.ReadLineAsync(); 
+                
+                while (!stream.EndOfStream)
+                {
+                    var line = await stream.ReadLineAsync();
+                    if (string.IsNullOrWhiteSpace(line)) continue;
+
+                    // Supporte les CSV séparés par des virgules ou des points-virgules
+                    var values = line.Split(new[] { ',', ';' });
+                    
+                    // Si on n'a pas au moins le Prénom, Nom, et Téléphone, on ignore
+                    if (values.Length < 3) 
+                    { 
+                        skipped++; 
+                        continue; 
+                    }
+
+                    var firstName = values[0].Trim();
+                    var lastName = values[1].Trim();
+                    var phone = values[2].Trim();
+                    var email = values.Length > 3 ? values[3].Trim() : null;
+
+                    // Si le téléphone est vide ou existe déjà en BDD, on ignore
+                    if (string.IsNullOrWhiteSpace(phone) || existingPhones.Contains(phone))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    // Si l'email est rempli et existe déjà, on ignore
+                    if (!string.IsNullOrWhiteSpace(email) && existingEmails.Contains(email))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    // Vérification anti-doublon à l'intérieur même du fichier CSV
+                    if (newContacts.Any(c => c.PhoneNumber == phone || (!string.IsNullOrWhiteSpace(email) && c.Email == email)))
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    // Ajout à la liste des contacts prêts à être sauvegardés
+                    newContacts.Add(new Contact
+                    {
+                        IdUser = userId,
+                        FirstName = string.IsNullOrWhiteSpace(firstName) ? null : firstName,
+                        LastName = string.IsNullOrWhiteSpace(lastName) ? null : lastName,
+                        PhoneNumber = phone,
+                        Email = string.IsNullOrWhiteSpace(email) ? null : email
+                    });
+                    
+                    imported++;
+                }
+            }
+
+            // 4. Sauvegarde en masse (Bulk Insert) très rapide
+            if (newContacts.Any())
+            {
+                await _context.Contacts.AddRangeAsync(newContacts);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new 
+            { 
+                imported, 
+                skipped, 
+                message = $"{imported} contact(s) importé(s) avec succès. {skipped} ligne(s) ignorée(s) (doublons ou données invalides)." 
+            });
+        }
+
+
     }
     
 }
